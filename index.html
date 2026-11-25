@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
-  Projet : Pimp My Font  ·  Version : 0.4.1 (nouveau nom : Pimp My Font)  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.5.0 (version papier)  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Paliers 1 à 3 : atelier, versions, historique, corbeille, aperçu, lissage, recadrage auto, export TTF.
   Palier 5 : installation sur l’écran d’accueil (manifest, service worker, fenêtre d’installation).
   Palier 6 : habillage rétro 70’s, logo original ; lettres du logo : Shrikhand (© Jonny Pinhorn, SIL OFL 1.1).
+  Palier 7 : version papier (fiche A4 en PDF, import d’une photo ou d’un scan, redressement, repassage précis), accents.
   À venir : variantes OpenType dans une seule police (P4), accents composés.
   Polices de repère intégrées (licence SIL OFL 1.1) : Patrick Hand (© Patrick Wagesreiter),
   Nunito (© The Nunito Project Authors), Lora (© The Lora Project Authors, nom réservé « Lora »).
@@ -106,6 +107,19 @@ dialog::backdrop{background:rgba(10,18,28,.6)}
 #cv-edit{display:block;touch-action:none;cursor:crosshair}
 #cv-edit.main{touch-action:auto;cursor:grab}
 .versions button{min-width:44px}
+.choix-mode{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:.6rem 0 1rem}
+.choix{display:flex;flex-direction:column;gap:.4rem;text-align:left;padding:1rem 1.1rem;min-height:44px;font:inherit;color:var(--encre);cursor:pointer;
+  background:var(--carte);border:3px solid var(--orange);border-radius:var(--rayon);box-shadow:var(--ombre)}
+.choix strong{font-family:"Shrikhand","Segoe UI",serif;font-weight:400;font-size:1.3rem;color:var(--brule)}
+:root[data-theme="sombre"] .choix strong{color:var(--jaune)}
+.choix:hover{background:var(--alerte-fond)}
+.pap-photo{max-width:100%;overflow:auto;margin:.5rem 0}
+#pap-cv-photo{max-width:100%;height:auto;border:2px solid var(--bord);border-radius:10px;cursor:crosshair}
+.pap-grille{display:grid;gap:.5rem;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));margin:.6rem 0}
+.pap-case{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border:2px solid var(--bord);border-radius:12px;background:var(--carte);font-weight:700}
+.pap-case.vide{opacity:.55}
+.pap-case canvas{width:72px;height:72px;border-radius:8px}
+.pap-case input{width:22px;height:22px;vertical-align:middle}
 .etat-trace{display:inline-block;margin:.2rem 0;padding:.35rem .9rem;border-radius:999px;font-weight:700;border:2px solid var(--orange);background:var(--carte)}
 .etat-trace.trace{background:var(--brule);border-color:var(--brun);color:#fff}
 body.en-edition .nav,body.en-edition .pied{display:none}
@@ -193,8 +207,9 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   "confidentialite": [
     "Tes dessins et tes polices restent sur ton appareil, dans la mémoire du navigateur.",
     "Rien n’est envoyé à un serveur, rien n’est collecté, aucun traceur n’est utilisé.",
-    "Aucun nom, aucune photo, aucune adresse n’est demandé.",
+    "Aucun nom ni aucune adresse n’est demandé.",
     "Le fichier de sauvegarde (JSON) est à toi : garde-le et protège-le toi-même.",
+    "Version papier : la photo ou le scan reste dans ton navigateur ; il est lu sur ton appareil, jamais envoyé, et n’est pas conservé (seuls les traits repassés des lettres le sont).",
     "Si tu vides les données du navigateur, ton travail peut disparaître : exporte régulièrement ta sauvegarde."
   ],
   "apropos": [
@@ -202,7 +217,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
     "Cette appli a été conçue par Tom Rougeaud, avec l’aide d’une IA (Claude Sonnet 5.5, Anthropic).",
     "Licence : CC BY-NC 4.0 (partage avec mention de l’auteur, pas d’usage commercial).",
     "Lettres de repère en filigrane : Patrick Hand (© Patrick Wagesreiter), Nunito (© The Nunito Project Authors), Lora (© The Lora Project Authors). Titres et logo : Shrikhand (© Jonny Pinhorn). Licence SIL Open Font License 1.1 : https://openfontlicense.org",
-    "Limites actuelles : les versions multiples sont exportées en polices séparées (pas encore d’alternance automatique dans une seule police) ; pas encore d’accents composés."
+    "Limites actuelles : les versions multiples sont exportées en polices séparées (pas encore d’alternance automatique dans une seule police) ; les accents sont des caractères à dessiner un par un (pas de composition automatique) ; la lecture du papier demande un feutre noir bien contrasté."
   ]
 }
 </script>
@@ -222,6 +237,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
 <nav class="nav" aria-label="Navigation principale">
   <button class="btn sec" data-aller="accueil">Mes polices</button>
   <button class="btn sec" data-aller="atelier">Atelier</button>
+  <button class="btn sec" data-aller="papier">Papier</button>
   <button class="btn sec" data-aller="apercu">Aperçu</button>
   <button class="btn sec" data-aller="export">Sauvegarde</button>
   <button class="btn sec" data-aller="histo">Historique</button>
@@ -241,8 +257,67 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       Pense à exporter ta sauvegarde : le navigateur peut vider sa mémoire.
       <button class="btn sec" data-aller="export">Aller à la sauvegarde</button>
     </div>
-    <div class="rang"><button class="btn" id="btn-nouvelle">+ Nouvelle police</button></div>
+    <h3 class="titre" style="margin-top:0">Comment veux-tu créer ta police ?</h3>
+    <div class="choix-mode">
+      <button class="choix" id="choix-num" type="button"><strong>✏ Version numérique</strong><span>Tu traces tes lettres à la main, au stylet ou à la souris, sur ton téléphone ou ton ordinateur.</span></button>
+      <button class="choix" id="choix-pap" type="button"><strong>🖨 Version papier</strong><span>Tu imprimes une fiche, tu écris au feutre noir, puis tu photographies ou scannes : l’appli découpe et repasse tes lettres.</span></button>
+    </div>
+    <div class="rang"><button class="btn sec" id="btn-nouvelle">+ Nouvelle police</button></div>
     <div id="liste-polices" class="liste-polices"></div>
+  </section>
+
+
+  <!-- Écran : Version papier -->
+  <section id="ecran-papier" data-ecran="papier" hidden>
+    <h2 tabindex="-1">Version papier</h2>
+    <p id="pap-police" class="discret"></p>
+    <div class="carte"><h3 style="margin-top:0">1. Imprime la fiche</h3>
+      <p>La fiche est un PDF A4 : une page = 35 cases. Il y a <strong id="pap-nbpages"></strong> pages pour tous les caractères (lettres, chiffres, accents, signes).</p>
+      <ul>
+        <li>Imprime en A4, à 100 % (« taille réelle »), sans « ajuster à la page ».</li>
+        <li>Garde bien les 4 carrés noirs des coins : ils servent à redresser la photo.</li>
+      </ul>
+      <div class="rang"><button class="btn" id="pap-pdf" type="button">Télécharger la fiche (PDF)</button></div>
+    </div>
+    <div class="carte"><h3 style="margin-top:0">2. Écris tes lettres</h3>
+      <ul>
+        <li>Utilise un <strong>feutre noir</strong> à pointe moyenne : pas de crayon à papier ni de stylo clair.</li>
+        <li>Écris chaque caractère dans son carré, <strong>posé sur la ligne de base</strong> (le trait plein).</li>
+        <li>Ne touche pas les bords du carré. Un trait de taille régulière donne une police plus propre.</li>
+        <li>Tu peux laisser des cases vides : elles seront ignorées.</li>
+      </ul>
+    </div>
+    <div class="carte"><h3 style="margin-top:0">3. Photographie ou scanne une page</h3>
+      <ul>
+        <li>Une seule page à la fois, <strong>entière</strong>, bien à plat, avec les 4 carrés noirs visibles.</li>
+        <li>Lumière douce, sans ombre de ta main. Pas besoin de cadrer parfaitement : l’appli redresse la page.</li>
+        <li>Scan : enregistre-le en image (JPG ou PNG). Un PDF scanné ne peut pas être lu ici.</li>
+      </ul>
+      <div class="rang">
+        <button class="btn" id="pap-photo" type="button">Prendre une photo</button>
+        <button class="btn sec" id="pap-fichier" type="button">Choisir une image</button>
+      </div>
+      <input type="file" id="pap-in-photo" accept="image/*" capture="environment" hidden autocomplete="off">
+      <input type="file" id="pap-in-fic" accept="image/*" hidden autocomplete="off">
+      <p id="pap-info" class="discret" aria-live="polite"></p>
+    </div>
+    <div class="carte" id="pap-cadrage" hidden><h3 style="margin-top:0">4. Vérifie le cadrage</h3>
+      <p id="pap-cadrage-txt" aria-live="polite"></p>
+      <div class="pap-photo"><canvas id="pap-cv-photo" aria-label="Photo de la page : les 4 coins repérés sont numérotés"></canvas></div>
+      <div class="rang">
+        <button class="btn sec" id="pap-coins" type="button">Placer les 4 coins à la main</button>
+        <label for="pap-page">Page</label><select id="pap-page" autocomplete="off"></select>
+      </div>
+    </div>
+    <div class="carte" id="pap-resultat" hidden><h3 style="margin-top:0">5. Vérifie les lettres</h3>
+      <p id="pap-bilan" aria-live="polite"></p>
+      <div class="rang"><label for="pap-seuil">Sensibilité du feutre</label><input type="range" id="pap-seuil" min="50" max="85" value="66" autocomplete="off">
+        <span class="discret">À droite : capte les traits plus clairs. À gauche : ignore les petites taches.</span></div>
+      <div id="pap-grille" class="pap-grille"></div>
+      <div class="rang"><button class="btn" id="pap-importer" type="button" disabled>Importer les lettres cochées</button></div>
+      <div id="pap-fin" class="alerte" hidden><span id="pap-fin-txt"></span>
+        <div class="rang"><button class="btn" data-aller="atelier" type="button">Ouvrir l’atelier</button></div></div>
+    </div>
   </section>
 
   <!-- Écran : Atelier (grille + éditeur) -->
@@ -402,7 +477,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <section id="ecran-apropos" data-ecran="apropos" hidden>
     <h2 tabindex="-1">À propos</h2>
     <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
-      <p class="discret">Version 0.4.1</p>
+      <p class="discret">Version 0.5.0</p>
       <button class="btn" id="btn-installer">Installer l’appli</button></div>
   </section>
 
@@ -476,15 +551,18 @@ const JEU = [
   { id: "maj", titre: "Majuscules", chars: Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ") },
   { id: "min", titre: "Minuscules", chars: Array.from("abcdefghijklmnopqrstuvwxyz") },
   { id: "chi", titre: "Chiffres", chars: Array.from("0123456789") },
-  { id: "pon", titre: "Ponctuation et symboles", chars: Array.from(".,;:!?’'-–()«»\"/&@+=%*#") }
+  { id: "pon", titre: "Ponctuation et symboles", chars: Array.from(".,;:!?’'-–()«»\"/&@+=%*#") },
+  { id: "acm", titre: "Lettres accentuées (minuscules)", chars: Array.from("àâäéèêëîïôöùûüÿçœæ") },
+  { id: "acM", titre: "Lettres accentuées (majuscules)", chars: Array.from("ÀÂÄÉÈÊËÎÏÔÖÙÛÜŸÇŒÆ") },
+  { id: "aut", titre: "Autres symboles", chars: Array.from("…—€°$£<>") }
 ];
 const CHARS = JEU.reduce((a, g) => a.concat(g.chars), []);
-const CHARS_OK = new Set(CHARS.concat(Array.from("éèêëàâäîïôöùûüçœæÿÉÈÊËÀÂÎÏÔÙÛÜÇŒÆ")));
+const CHARS_OK = new Set(CHARS);
 const NOMS = { ".": "point", ",": "virgule", ";": "point-virgule", ":": "deux-points", "!": "point d’exclamation",
   "?": "point d’interrogation", "’": "apostrophe", "'": "apostrophe droite", "-": "trait d’union", "–": "tiret",
   "(": "parenthèse ouvrante", ")": "parenthèse fermante", "«": "guillemet ouvrant", "»": "guillemet fermant",
   "\"": "guillemet droit", "/": "barre oblique", "&": "esperluette", "@": "arobase", "+": "plus", "=": "égal",
-  "%": "pourcentage", "*": "astérisque", "#": "dièse" };
+  "%": "pourcentage", "*": "astérisque", "#": "dièse", "…": "points de suspension", "—": "tiret long", "€": "euro", "°": "degré", "$": "dollar", "£": "livre", "<": "inférieur", ">": "supérieur" };
 
 /* ===== SECTION : Utilitaires ===== */
 const $ = (s) => document.querySelector(s);
@@ -1696,6 +1774,7 @@ function remplirTextes() {
 /* ===== SECTION : Navigation, thème, taille du texte ===== */
 function aller(nom) {
   if (nom === "atelier" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
+  if (nom === "papier" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
   if (nom === "apercu" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
   if (ed.car && nom !== "atelier") { document.body.classList.remove("en-edition"); sortirEditeur(true); }
   document.querySelectorAll("[data-ecran]").forEach((s) => { s.hidden = s.dataset.ecran !== nom; });
@@ -1703,6 +1782,7 @@ function aller(nom) {
   if (nom === "accueil") afficherAccueil();
   if (nom === "atelier") { if (!ed.car) { $("#vue-grille").hidden = false; $("#vue-editeur").hidden = true; construireGrille(); } }
   if (nom === "apercu") { chargerReglagesUI(); dessinerApercu(); }
+  if (nom === "papier") { $("#pap-police").textContent = "Police ouverte : « " + etat.courant.nom + " ». Les lettres importées s’ajoutent à cette police."; $("#pap-nbpages").textContent = String(nbPagesFiche()); }
   if (nom === "histo") afficherHistorique();
   if (nom === "export") { majDerniereExport(); majExport(); }
   const h = document.querySelector('[data-ecran="' + nom + '"] h2'); if (h) h.focus();
@@ -1720,6 +1800,19 @@ function brancherGeneral() {
   });
   $("#btn-texte-plus").addEventListener("click", () => { etat.prefs.taille = Math.min(130, etat.prefs.taille + 10); appliquerPrefs(); sauverPrefs(); });
   $("#btn-texte-moins").addEventListener("click", () => { etat.prefs.taille = Math.max(90, etat.prefs.taille - 10); appliquerPrefs(); sauverPrefs(); });
+  /* Deux chemins : tracé numérique ou version papier. Sans police ouverte, on en crée une. */
+  const choisirChemin = async (ecran) => {
+    if (!etat.courant) {
+      if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
+      const nom = await saisir("Nom de ta nouvelle police", "Pimp My Font " + (etat.projets.length + 1));
+      if (!nom) return;
+      await ouvrirPolice(await creerPolice(nom.slice(0, 60)));
+    }
+    aller(ecran);
+  };
+  $("#choix-num").addEventListener("click", () => choisirChemin("atelier"));
+  $("#choix-pap").addEventListener("click", () => choisirChemin("papier"));
+  brancherPapier();
   $("#btn-nouvelle").addEventListener("click", async () => {
     if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
     const nom = await saisir("Nom de ta nouvelle police", "Pimp My Font " + (etat.projets.length + 1));
@@ -1754,6 +1847,489 @@ function brancherGeneral() {
   window.addEventListener("unhandledrejection", () => annoncer("Un problème est survenu. Recommence."));
   /* instantané automatique toutes les 2 minutes si modifié */
   setInterval(() => { if (etat.sale && etat.courant) creerInstantane(etat.courant, "auto", ""); }, 120000);
+}
+
+/* ===== SECTION : Papier — fiche A4 : constantes et fichier PDF ===== */
+/* Toutes les cotes de la fiche sont en millimètres (origine : coin haut gauche de la page). */
+const FICHE = {
+  L: 210, H: 297, cols: 5, lignes: 7, cell: 35,     /* 5 × 7 = 35 cases par page */
+  x0: 17.5, y0: 27,                                 /* coin de la première case */
+  carre: 31, dx: 2, dy: 2.5,                        /* carré d’écriture dans la case (même proportions que l’atelier) */
+  marge: 1,                                         /* marge lue autour du carré (traits qui dépassent un peu) */
+  marq: 10, centres: [[14, 14], [196, 14], [196, 283], [14, 283]],   /* 4 carrés noirs : haut gauche (avec un point blanc), haut droite, bas droite, bas gauche */
+  idx: [[150, 9], [158, 9], [166, 9]], idTaille: 6, /* 3 cases : numéro de page en binaire */
+  pxmm: 5                                           /* résolution de la page redressée : 5 pixels par mm */
+};
+const PAR_PAGE = FICHE.cols * FICHE.lignes;
+const nbPagesFiche = () => Math.ceil(CHARS.length / PAR_PAGE);
+
+/* Texte → octets WinAnsi (cp1252) : toutes nos lettres existent dans la police standard Helvetica des PDF. */
+const WIN1252 = { "€": 128, "‚": 130, "ƒ": 131, "„": 132, "…": 133, "†": 134, "‡": 135, "ˆ": 136, "‰": 137, "Š": 138, "‹": 139, "Œ": 140, "Ž": 142, "‘": 145, "’": 146, "“": 147, "”": 148, "•": 149, "–": 150, "—": 151, "˜": 152, "™": 153, "š": 154, "›": 155, "œ": 156, "ž": 158, "Ÿ": 159 };
+function versWinAnsi(t) {
+  let s = "";
+  for (const ch of t) { const c = ch.codePointAt(0); s += String.fromCharCode(WIN1252[ch] !== undefined ? WIN1252[ch] : (c < 256 ? c : 63)); }
+  return s.replace(/[\\()]/g, (m) => "\\" + m);
+}
+/* Dessine le contenu d’une page de la fiche (opérateurs PDF). Gris très clairs : le logiciel les ignorera à la lecture. */
+function contenuFiche(k) {
+  const mm = 72 / 25.4, o = [];
+  const X = (x) => (x * mm).toFixed(2), Y = (y) => ((FICHE.H - y) * mm).toFixed(2), D = (d) => (d * mm).toFixed(2);
+  const rect = (x, y, w, h, op) => o.push(X(x) + " " + Y(y + h) + " " + D(w) + " " + D(h) + " re " + op);
+  const trait = (x1, y1, x2, y2) => o.push(X(x1) + " " + Y(y1) + " m " + X(x2) + " " + Y(y2) + " l S");
+  const texte = (x, y, t, taille, gras) => o.push("BT /" + (gras ? "F2" : "F1") + " " + taille + " Tf " + X(x) + " " + Y(y) + " Td (" + versWinAnsi(t) + ") Tj ET");
+  /* quatre carrés noirs de repérage ; celui du haut gauche porte un point blanc (il donne le sens de la page) */
+  o.push("0 g");
+  FICHE.centres.forEach((c, i) => {
+    rect(c[0] - FICHE.marq / 2, c[1] - FICHE.marq / 2, FICHE.marq, FICHE.marq, "f");
+    if (i === 0) { o.push("1 g"); rect(c[0] - 1.7, c[1] - 1.7, 3.4, 3.4, "f"); o.push("0 g"); }
+  });
+  /* numéro de page : 3 petites cases, noires = 1 */
+  const num = k + 1;
+  FICHE.idx.forEach((p, i) => {
+    const bit = (num >> (2 - i)) & 1;
+    o.push("0.80 G 0.4 w"); rect(p[0], p[1], FICHE.idTaille, FICHE.idTaille, "S");
+    if (bit) { o.push("0 g"); rect(p[0], p[1], FICHE.idTaille, FICHE.idTaille, "f"); }
+  });
+  o.push("0.15 g"); texte(24, 14, "Pimp My Font – fiche " + num + " / " + nbPagesFiche(), 12, true);
+  o.push("0.35 g");
+  texte(24, 19, "Écris chaque caractère au feutre noir, posé sur la ligne de base (trait plein). Reste dans le carré.", 7.2);
+  texte(24, 22.6, "Puis photographie ou scanne la page entière, bien à plat, avec les 4 carrés noirs visibles.", 7.2);
+  for (let i = 0; i < PAR_PAGE; i++) {
+    const c = CHARS[k * PAR_PAGE + i]; if (c === undefined) break;
+    const cx = FICHE.x0 + (i % FICHE.cols) * FICHE.cell, cy = FICHE.y0 + Math.floor(i / FICHE.cols) * FICHE.cell;
+    const ix = cx + FICHE.dx, iy = cy + FICHE.dy, S = FICHE.carre;
+    o.push("0.92 G 0.3 w"); rect(cx, cy, FICHE.cell, FICHE.cell, "S");                    /* contour de la case */
+    o.push("0.86 G 0.4 w"); rect(ix, iy, S, S, "S");                                       /* carré d’écriture */
+    o.push("[1.6 1.6] 0 d 0.90 G 0.3 w");                                                  /* repères en pointillés */
+    [G.caps, G.xh, G.desc].forEach((u) => trait(ix, iy + S * u / BOITE, ix + S, iy + S * u / BOITE));
+    trait(ix + S / 2, iy, ix + S / 2, iy + S);
+    o.push("[] 0 d 0.84 G 0.5 w"); trait(ix, iy + S * G.base / BOITE, ix + S, iy + S * G.base / BOITE);   /* ligne de base : trait plein */
+    o.push("0.82 g"); texte(cx + 2, cy + 2.2, c, 7);                                       /* étiquette de la case */
+  }
+  return o.join("\n");
+}
+/* Assemble le PDF (sans bibliothèque) : une page A4 par groupe de 35 caractères. */
+function fabriquerPDF() {
+  const n = nbPagesFiche(), objs = [];
+  const W = (210 * 72 / 25.4).toFixed(2), Ht = (297 * 72 / 25.4).toFixed(2);
+  objs[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  const kids = []; for (let k = 0; k < n; k++) kids.push((5 + 2 * k) + " 0 R");
+  objs[2] = "<< /Type /Pages /Kids [" + kids.join(" ") + "] /Count " + n + " >>";
+  objs[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  objs[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  for (let k = 0; k < n; k++) {
+    const flux = contenuFiche(k);
+    objs[5 + 2 * k] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + W + " " + Ht + "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents " + (6 + 2 * k) + " 0 R >>";
+    objs[6 + 2 * k] = "<< /Length " + flux.length + " >>\nstream\n" + flux + "\nendstream";
+  }
+  let s = "%PDF-1.4\n"; const pos = [];
+  for (let i = 1; i < objs.length; i++) { pos[i] = s.length; s += i + " 0 obj\n" + objs[i] + "\nendobj\n"; }
+  const xr = s.length;
+  s += "xref\n0 " + objs.length + "\n0000000000 65535 f \n";
+  for (let i = 1; i < objs.length; i++) s += String(pos[i]).padStart(10, "0") + " 00000 n \n";
+  s += "trailer\n<< /Size " + objs.length + " /Root 1 0 R >>\nstartxref\n" + xr + "\n%%EOF";
+  const u8 = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i) & 255;   /* chaque caractère = 1 octet */
+  return new Blob([u8], { type: "application/pdf" });
+}
+
+/* ===== SECTION : Papier — vision : redressement de la page ===== */
+/* Gris d’une image (octets 0–255) à partir de ses pixels RGBA. */
+function grisDepuis(img) {
+  const n = img.width * img.height, g = new Uint8ClampedArray(n), d = img.data;
+  for (let i = 0; i < n; i++) g[i] = (d[4 * i] * 299 + d[4 * i + 1] * 587 + d[4 * i + 2] * 114) / 1000;
+  return g;
+}
+/* Filtre « maximum » séparable (rayon r) : sert à retrouver la couleur du papier sous l’encre. */
+function maxFiltre(src, w, h, r) {
+  const tmp = new Uint8ClampedArray(w * h), out = new Uint8ClampedArray(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let m = 0; const a = Math.max(0, x - r), b = Math.min(w - 1, x + r); for (let i = a; i <= b; i++) { const v = src[y * w + i]; if (v > m) m = v; } tmp[y * w + x] = m; }
+  for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) { let m = 0; const a = Math.max(0, y - r), b = Math.min(h - 1, y + r); for (let j = a; j <= b; j++) { const v = tmp[j * w + x]; if (v > m) m = v; } out[y * w + x] = m; }
+  return out;
+}
+/* Flou « boîte » (moyenne glissante) de rayon r, résultat en flottants. */
+function flouBoite(src, w, h, r) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) { let s = 0, c = 0; for (let x = -r; x < w; x++) { const e = x + r, l = x - r - 1; if (e < w) { s += src[y * w + e]; c++; } if (l >= 0) { s -= src[y * w + l]; c--; } if (x >= 0) tmp[y * w + x] = s / c; } }
+  for (let x = 0; x < w; x++) { let s = 0, c = 0; for (let y = -r; y < h; y++) { const e = y + r, l = y - r - 1; if (e < h) { s += tmp[e * w + x]; c++; } if (l >= 0) { s -= tmp[l * w + x]; c--; } if (y >= 0) out[y * w + x] = s / c; } }
+  return out;
+}
+/* Couleur locale du papier (éclairage inégal, ombres) : maximum puis flou. */
+const fondLocal = (g, w, h, r) => flouBoite(maxFiltre(g, w, h, r), w, h, r);
+/* Réduit un gris par moyenne de blocs (détection des carrés sur une image plus petite). */
+function reduireGris(g, w, h, f) {
+  const w2 = Math.floor(w / f), h2 = Math.floor(h / f), o = new Uint8ClampedArray(w2 * h2);
+  for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) { let s = 0; for (let j = 0; j < f; j++) for (let i = 0; i < f; i++) s += g[(y * f + j) * w + x * f + i]; o[y * w2 + x] = s / (f * f); }
+  return { g: o, w: w2, h: h2 };
+}
+/* Composantes connexes (pixels noirs voisins) avec leurs mesures. */
+function composantes(bin, w, h) {
+  const lab = new Int32Array(w * h), liste = [], pile = new Int32Array(w * h);
+  for (let s = 0; s < w * h; s++) {
+    if (!bin[s] || lab[s]) continue;
+    const id = liste.length + 1; let top = 0; pile[top++] = s; lab[s] = id;
+    let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+    while (top) {
+      const p = pile[--top], x = p % w, y = (p - x) / w;
+      n++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0 && bin[p - 1] && !lab[p - 1]) { lab[p - 1] = id; pile[top++] = p - 1; }
+      if (x < w - 1 && bin[p + 1] && !lab[p + 1]) { lab[p + 1] = id; pile[top++] = p + 1; }
+      if (y > 0 && bin[p - w] && !lab[p - w]) { lab[p - w] = id; pile[top++] = p - w; }
+      if (y < h - 1 && bin[p + w] && !lab[p + w]) { lab[p + w] = id; pile[top++] = p + w; }
+    }
+    liste.push({ id: id, n: n, cx: sx / n, cy: sy / n, sxx: sxx / n - (sx / n) ** 2, syy: syy / n - (sy / n) ** 2, sxy: sxy / n - (sx / n) * (sy / n), x0: x0, x1: x1, y0: y0, y1: y1 });
+  }
+  return { lab: lab, liste: liste };
+}
+/* Cherche les 4 carrés noirs des coins. Retourne { ok, pts:[HG, HD, BD, BG] } en pixels de l’image donnée, ou { ok:false }. */
+function trouverCoins(g, w, h) {
+  const r = Math.max(8, Math.round(Math.min(w, h) * 0.035)), fond = fondLocal(g, w, h, r), bin = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) bin[i] = g[i] < fond[i] * 0.5 ? 1 : 0;
+  const { liste } = composantes(bin, w, h), air = w * h;
+  /* candidats : gros blocs pleins et carrés (les lettres, plus fines, sont écartées) */
+  let cand = liste.filter((c) => {
+    const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1, tr = c.sxx + c.syy, det = c.sxx * c.syy - c.sxy * c.sxy;
+    if (c.n < air * 0.0003 || c.n > air * 0.02 || bw / bh > 1.8 || bh / bw > 1.8 || c.n / (bw * bh) < 0.4) return false;
+    const e1 = tr / 2 + Math.sqrt(Math.max(0, tr * tr / 4 - det)), e2 = tr / 2 - Math.sqrt(Math.max(0, tr * tr / 4 - det));
+    return e2 > 0 && e1 / e2 < 1.7 && c.n / (6 * tr) > 0.72;                   /* presque carré ET plein (compacité : une lettre, même épaisse, est bien moins compacte) */
+  }).sort((a, b) => b.n - a.n).slice(0, 8);
+  let meilleur = null;
+  const aireQuad = (p) => { let a = 0; for (let i = 0; i < 4; i++) { const q = p[(i + 1) % 4]; a += p[i][0] * q[1] - q[0] * p[i][1]; } return Math.abs(a) / 2; };
+  for (let a = 0; a < cand.length; a++) for (let b = a + 1; b < cand.length; b++) for (let c = b + 1; c < cand.length; c++) for (let d = c + 1; d < cand.length; d++) {
+    const q = [cand[a], cand[b], cand[c], cand[d]], ns = q.map((e) => e.n);
+    if (Math.max(...ns) / Math.min(...ns) > 2.6) continue;
+    const mx = (q[0].cx + q[1].cx + q[2].cx + q[3].cx) / 4, my = (q[0].cy + q[1].cy + q[2].cy + q[3].cy) / 4;
+    q.sort((u, v) => Math.atan2(u.cy - my, u.cx - mx) - Math.atan2(v.cy - my, v.cx - mx));   /* ordre horaire (y vers le bas) */
+    const pts = q.map((e) => [e.cx, e.cy]), A = aireQuad(pts);
+    let convexe = true; for (let i = 0; i < 4; i++) { const p0 = pts[i], p1 = pts[(i + 1) % 4], p2 = pts[(i + 2) % 4]; if ((p1[0] - p0[0]) * (p2[1] - p1[1]) - (p1[1] - p0[1]) * (p2[0] - p1[0]) <= 0) convexe = false; }
+    if (!convexe || A < air * 0.12) continue;
+    if (!meilleur || A > meilleur.A) meilleur = { A: A, q: q };
+  }
+  if (!meilleur) return { ok: false };
+  /* le carré au point blanc (centre clair) est le coin haut gauche */
+  const clair = meilleur.q.map((e) => { const x = Math.round(e.cx), y = Math.round(e.cy); let s = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) s += g[(y + j) * w + x + i] / fond[(y + j) * w + x + i]; return s / 9; });
+  const idx = clair.map((v, i) => [v, i]).sort((u, v) => v[0] - u[0]);
+  if (idx[0][0] < 0.65 || idx[1][0] > 0.55) return { ok: false };             /* un seul centre clair attendu */
+  const dep = idx[0][1], pts = [];
+  for (let i = 0; i < 4; i++) { const e = meilleur.q[(dep + i) % 4]; pts.push([e.cx, e.cy]); }
+  return { ok: true, pts: pts };
+}
+/* Homographie : transformation qui envoie 4 points src vers 4 points dst (résolution d’un système 8×8). */
+function homographie(src, dst) {
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = src[i], [u, v] = dst[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  for (let c = 0; c < 8; c++) {                                                /* élimination de Gauss avec pivot */
+    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = c + 1; r < 8; r++) { const f = A[r][c] / A[c][c]; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; }
+  }
+  const h = new Array(8);
+  for (let r = 7; r >= 0; r--) { let s = b[r]; for (let k = r + 1; k < 8; k++) s -= A[r][k] * h[k]; h[r] = s / A[r][r]; }
+  return h;
+}
+/* Redresse la page : renvoie un gris de 210 mm × 297 mm à 5 px/mm. coins = centres des 4 carrés dans l’image source. */
+function redresserPage(g, sw, sh, coins) {
+  const W = FICHE.L * FICHE.pxmm, H = FICHE.H * FICHE.pxmm, k = FICHE.pxmm;
+  const modele = FICHE.centres.map((c) => [c[0] * k, c[1] * k]);
+  const h = homographie(modele, coins), out = new Uint8ClampedArray(W * H);
+  for (let v = 0; v < H; v++) for (let u = 0; u < W; u++) {
+    const z = h[6] * u + h[7] * v + 1, x = (h[0] * u + h[1] * v + h[2]) / z, y = (h[3] * u + h[4] * v + h[5]) / z;
+    if (x < 0 || y < 0 || x >= sw - 1 || y >= sh - 1) { out[v * W + u] = 255; continue; }
+    const x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, i = y0 * sw + x0;
+    out[v * W + u] = g[i] * (1 - fx) * (1 - fy) + g[i + 1] * fx * (1 - fy) + g[i + sw] * (1 - fx) * fy + g[i + sw + 1] * fx * fy;
+  }
+  return { g: out, w: W, h: H };
+}
+/* Lit le numéro de page (3 cases noires/blanches) sur la page redressée. Retourne 1…7 ou 0 si illisible. */
+function lireNumeroPage(page) {
+  const k = FICHE.pxmm; let num = 0;
+  for (const p of FICHE.idx) {
+    let s = 0, n = 0;
+    for (let y = Math.round((p[1] + 1.5) * k); y < (p[1] + FICHE.idTaille - 1.5) * k; y++) for (let x = Math.round((p[0] + 1.5) * k); x < (p[0] + FICHE.idTaille - 1.5) * k; x++) { s += page.g[y * page.w + x]; n++; }
+    num = num * 2 + (s / n < 110 ? 1 : 0);
+  }
+  return num;
+}
+/* Encre de toute la page : 1 = trait. Éclairage corrigé ; seuil = part du papier local (plus petit = feutre plus sombre exigé). */
+function binariserPage(page, seuil) {
+  const { g, w, h } = page, lisse = flouBoite(g, w, h, 1), fond = fondLocal(g, w, h, 16), bin = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) bin[i] = (lisse[i] < fond[i] * seuil && fond[i] > 60) ? 1 : 0;
+  return bin;
+}
+/* Découpe la case n° i d’une page : image binaire du carré d’écriture + marge. */
+function decouperCase(bin, W, i) {
+  const k = FICHE.pxmm, col = i % FICHE.cols, lig = Math.floor(i / FICHE.cols);
+  const ix = (FICHE.x0 + col * FICHE.cell + FICHE.dx) * k, iy = (FICHE.y0 + lig * FICHE.cell + FICHE.dy) * k, S = FICHE.carre * k, m = Math.round(FICHE.marge * k);
+  const w = Math.round(S) + 2 * m, h = w, out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = bin[(Math.round(iy) - m + y) * W + Math.round(ix) - m + x];
+  return { bin: out, w: w, h: h, marge: m, carre: S };
+}
+/* Nettoie une case : retire les poussières et un éventuel cadre imprimé trop sombre. Renvoie le nombre de pixels d’encre. */
+function nettoyerCase(c) {
+  const { liste, lab } = composantes(c.bin, c.w, c.h), minPx = 14; let reste = 0;
+  const mauvais = new Set();
+  liste.forEach((e) => {
+    const bw = e.x1 - e.x0 + 1, bh = e.y1 - e.y0 + 1;
+    if (e.n < minPx || (bw >= c.w * 0.92 && bh >= c.h * 0.92 && e.n / (bw * bh) < 0.25)) mauvais.add(e.id);
+  });
+  for (let i = 0; i < c.bin.length; i++) { if (c.bin[i] && mauvais.has(lab[i])) c.bin[i] = 0; else if (c.bin[i]) reste++; }
+  c.encre = reste; return reste;
+}
+
+/* ===== SECTION : Papier — repassage précis : de l’image au trait ===== */
+/* Distance au fond (chanfrein 3-4) : sert à connaître l’épaisseur du feutre. */
+function distanceFond(b, w, h) {
+  const d = new Float32Array(w * h), G = 1e6;
+  for (let i = 0; i < w * h; i++) d[i] = b[i] ? G : 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (d[i]) d[i] = Math.min(d[i], d[i - 1] + 3, d[i - w] + 3, d[i - w - 1] + 4, d[i - w + 1] + 4); }
+  for (let y = h - 2; y > 0; y--) for (let x = w - 2; x > 0; x--) { const i = y * w + x; if (d[i]) d[i] = Math.min(d[i], d[i + 1] + 3, d[i + w] + 3, d[i + w + 1] + 4, d[i + w - 1] + 4); }
+  for (let i = 0; i < w * h; i++) d[i] /= 3;
+  return d;
+}
+/* Amincissement de Zhang-Suen : réduit chaque trait épais à une ligne d’un pixel (le squelette). */
+function amincir(b, w, h) {
+  const supp = []; let change = true;
+  while (change) {
+    change = false;
+    for (let passe = 0; passe < 2; passe++) {
+      supp.length = 0;
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x; if (!b[i]) continue;
+        const p2 = b[i - w], p3 = b[i - w + 1], p4 = b[i + 1], p5 = b[i + w + 1], p6 = b[i + w], p7 = b[i + w - 1], p8 = b[i - 1], p9 = b[i - w - 1];
+        const B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9; if (B < 2 || B > 6) continue;
+        const A = (!p2 && p3 ? 1 : 0) + (!p3 && p4 ? 1 : 0) + (!p4 && p5 ? 1 : 0) + (!p5 && p6 ? 1 : 0) + (!p6 && p7 ? 1 : 0) + (!p7 && p8 ? 1 : 0) + (!p8 && p9 ? 1 : 0) + (!p9 && p2 ? 1 : 0);
+        if (A !== 1) continue;
+        if (passe === 0) { if (p2 * p4 * p6 !== 0 || p4 * p6 * p8 !== 0) continue; } else if (p2 * p4 * p8 !== 0 || p2 * p6 * p8 !== 0) continue;
+        supp.push(i);
+      }
+      if (supp.length) { change = true; for (const i of supp) b[i] = 0; }
+    }
+  }
+}
+/* Suit le squelette et le découpe en traits (suites de pixels) entre extrémités et carrefours. */
+function tracerSquelette(sk, w, h) {
+  const N = w * h, type = new Uint8Array(N), vis = new Uint8Array(N), DX = [0, 1, 1, 1, 0, -1, -1, -1], DY = [-1, -1, 0, 1, 1, 1, 0, -1];
+  const voisins = (i) => { const x = i % w, y = (i - x) / w, r = []; for (let k = 0; k < 8; k++) { const xx = x + DX[k], yy = y + DY[k]; if (xx >= 0 && yy >= 0 && xx < w && yy < h && sk[yy * w + xx]) r.push(yy * w + xx); } return r; };
+  const cheb = (a, b) => Math.max(Math.abs(a % w - b % w), Math.abs(((a / w) | 0) - ((b / w) | 0)));
+  for (let i = 0; i < N; i++) {
+    if (!sk[i]) continue;
+    const x = i % w, y = (i - x) / w; let n = 0, A = 0, prec = sk[(y + DY[7]) * w + x + DX[7]];
+    for (let k = 0; k < 8; k++) { const v = sk[(y + DY[k]) * w + x + DX[k]]; if (v) n++; if (v && !prec) A++; prec = v; }
+    type[i] = n === 0 ? 4 : (A === 1 ? 1 : (A >= 3 ? 3 : 2));                   /* 1 extrémité, 2 passage, 3 carrefour, 4 point isolé */
+  }
+  const chemins = [];
+  const marcher = (s, n) => {
+    const p = [s]; let prev = s, cur = n;
+    for (;;) {
+      p.push(cur); if (type[cur] !== 2) break;
+      vis[cur] = 1;
+      const cand = voisins(cur).filter((j) => j !== prev && !(vis[j] && type[j] === 2));
+      if (!cand.length) break;
+      const suiv = cand.find((j) => cheb(j, prev) > 1); prev = cur; cur = suiv !== undefined ? suiv : cand[0];
+    }
+    return p;
+  };
+  for (let s = 0; s < N; s++) {
+    if (!sk[s] || type[s] === 2) continue;
+    if (type[s] === 4) { chemins.push([s]); continue; }
+    for (const n of voisins(s)) {
+      if (type[n] === 2 && vis[n]) continue;
+      if (type[n] !== 2 && n < s) continue;                                       /* liaison carrefour-carrefour : une seule fois */
+      chemins.push(marcher(s, n));
+    }
+  }
+  for (let s = 0; s < N; s++) {                                                   /* boucles fermées (o, 0, …) */
+    if (!sk[s] || type[s] !== 2 || vis[s]) continue;
+    vis[s] = 1; const p = [s]; let prev = s, cur = voisins(s)[0];
+    while (cur !== undefined && cur !== s) {
+      p.push(cur); vis[cur] = 1;
+      const cand = voisins(cur).filter((j) => j !== prev && (j === s ? p.length > 2 : !vis[j]));
+      if (!cand.length) { cur = undefined; break; }
+      const suiv = cand.find((j) => j === s || cheb(j, prev) > 1);                /* on avance sans revenir en arrière */
+      prev = cur; cur = suiv !== undefined ? suiv : cand[0];
+    }
+    p.push(s); chemins.push(p);
+  }
+  return { chemins: chemins, type: type };
+}
+/* Simplification de Douglas-Peucker d’une ligne ouverte. */
+function simplifierLigne(pts, eps) {
+  if (pts.length < 3) return pts;
+  const garde = new Uint8Array(pts.length); garde[0] = garde[pts.length - 1] = 1;
+  const pile = [[0, pts.length - 1]];
+  while (pile.length) {
+    const [a, b] = pile.pop(); let dm = 0, im = -1;
+    const dx = pts[b][0] - pts[a][0], dy = pts[b][1] - pts[a][1], l2 = dx * dx + dy * dy;
+    for (let i = a + 1; i < b; i++) {
+      let t = l2 ? ((pts[i][0] - pts[a][0]) * dx + (pts[i][1] - pts[a][1]) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+      const d = Math.hypot(pts[i][0] - pts[a][0] - t * dx, pts[i][1] - pts[a][1] - t * dy);
+      if (d > dm) { dm = d; im = i; }
+    }
+    if (dm > eps && im > 0) { garde[im] = 1; pile.push([a, im], [im, b]); }
+  }
+  return pts.filter((p, i) => garde[i]);
+}
+/* Vectorise une case : renvoie des traits [[x, y, épaisseur], …] dans le repère de l’atelier (0–1000). */
+function vectoriserCase(c) {
+  const P = 2, w = c.w + 2 * P, h = c.h + 2 * P, b = new Uint8Array(w * h);
+  for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) b[(y + P) * w + x + P] = c.bin[y * c.w + x];
+  const dt = distanceFond(b, w, h), sk = Uint8Array.from(b);
+  amincir(sk, w, h);
+  const { chemins, type } = tracerSquelette(sk, w, h), u = BOITE / c.carre, traits = [];
+  chemins.forEach((ch) => {
+    const fin = (i) => type[ch[i]];
+    if (ch.length > 1) {                                                          /* on enlève les petites épines (extrémité → carrefour courte) */
+      const e = fin(0) === 1 && fin(ch.length - 1) === 3 ? ch[ch.length - 1] : (fin(ch.length - 1) === 1 && fin(0) === 3 ? ch[0] : -1);
+      if (e >= 0 && ch.length < Math.max(4, 1.3 * dt[e] + 3)) return;
+    }
+    let pts = ch.map((i) => { const x = i % w, y = (i - x) / w; return [x - P, y - P, dt[i]]; });
+    for (let passe = 0; passe < 4 && pts.length > 2; passe++) {                   /* lissage léger des marches d’escalier */
+      const q = pts.map((p) => p.slice());
+      for (let i = 1; i < pts.length - 1; i++) { q[i][0] = (pts[i - 1][0] + 2 * pts[i][0] + pts[i + 1][0]) / 4; q[i][1] = (pts[i - 1][1] + 2 * pts[i][1] + pts[i + 1][1]) / 4; q[i][2] = (pts[i - 1][2] + 2 * pts[i][2] + pts[i + 1][2]) / 4; }
+      pts = q;
+    }
+    pts = simplifierLigne(pts, 0.6);
+    const t = pts.map((p) => [Math.round((p[0] - c.marge + 0.5) * u * 10) / 10, Math.round((p[1] - c.marge + 0.5) * u * 10) / 10, Math.round(Math.max(1, 2 * p[2] - 1) * u * 10) / 10]);
+    if (t.length) traits.push(t);
+  });
+  return traits;
+}
+
+/* ===== SECTION : Papier — écran « Version papier » ===== */
+const pap = { img: null, coins: null, page: null, num: 1, seuil: 0.66, cases: [], vue: null, minuteur: 0 };
+const MAX_IMAGE = 2400;                    /* côté le plus long de l’image de travail (pixels) */
+
+/* Charge une photo ou un scan : image de travail en gris, puis recherche automatique des 4 carrés. */
+async function papierCharger(fichier) {
+  const info = $("#pap-info");
+  if (!fichier) return;
+  if (fichier.type && fichier.type.indexOf("image/") !== 0) { info.textContent = fichier.type === "application/pdf" ? "Un PDF ne peut pas être lu ici. Enregistre ton scan en image (JPG ou PNG), ou prends une photo." : "Ce fichier n’est pas une image."; return; }
+  if (fichier.size > 40 * 1024 * 1024) { info.textContent = "Image trop lourde (40 Mo au plus)."; return; }
+  info.textContent = "Lecture de l’image…";
+  try {
+    let bmp; try { bmp = await createImageBitmap(fichier, { imageOrientation: "from-image" }); } catch (e0) { bmp = await createImageBitmap(fichier); }   /* anciens navigateurs : sans l’option */
+    const f = Math.min(1, MAX_IMAGE / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * f), h = Math.round(bmp.height * f);
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(bmp, 0, 0, w, h); if (bmp.close) bmp.close();
+    pap.img = { w: w, h: h, g: grisDepuis(cx.getImageData(0, 0, w, h)), cv: cv };
+  } catch (e) { info.textContent = "Impossible de lire cette image. Essaie un JPG ou un PNG."; return; }
+  await new Promise((r) => setTimeout(r, 20));                                    /* laisse l’écran se rafraîchir */
+  const f = Math.max(1, Math.round(Math.max(pap.img.w, pap.img.h) / 1100)), red = reduireGris(pap.img.g, pap.img.w, pap.img.h, f);
+  const res = trouverCoins(red.g, red.w, red.h);
+  pap.coins = res.ok ? res.pts.map((p) => [p[0] * f + f / 2, p[1] * f + f / 2]) : null;
+  $("#pap-cadrage").hidden = false; $("#pap-resultat").hidden = true;
+  if (pap.coins) { info.textContent = "Page trouvée."; await papierRedresser(); }
+  else { info.textContent = "Je n’ai pas trouvé les 4 carrés noirs tout seul. Touche-les toi-même sur la photo."; papierModeManuel(); }
+}
+/* Dessine la photo avec les coins repérés. */
+function papierDessinerPhoto() {
+  const cv = $("#pap-cv-photo"), im = pap.img; if (!im) return;
+  const r = Math.min(1, 640 / im.w); cv.width = Math.round(im.w * r); cv.height = Math.round(im.h * r); pap.vue = r;
+  const ctx = cv.getContext("2d"); ctx.drawImage(im.cv, 0, 0, cv.width, cv.height);
+  const pts = pap.manuel || pap.coins || [];
+  if (pts.length === 4) { ctx.strokeStyle = "#e8771e"; ctx.lineWidth = 3; ctx.beginPath(); pts.forEach((p, i) => ctx[i ? "lineTo" : "moveTo"](p[0] * r, p[1] * r)); ctx.closePath(); ctx.stroke(); }
+  pts.forEach((p, i) => { ctx.fillStyle = "#b8431a"; ctx.beginPath(); ctx.arc(p[0] * r, p[1] * r, 11, 0, 7); ctx.fill(); ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(String(i + 1), p[0] * r, p[1] * r); });
+}
+const NOMS_COINS = ["haut gauche : le carré avec un point blanc", "haut droite", "bas droite", "bas gauche"];
+/* Mode manuel : l’utilisateur(trice) touche les 4 carrés, dans l’ordre (sens des aiguilles d’une montre). */
+function papierModeManuel() {
+  pap.manuel = []; pap.coins = null; $("#pap-resultat").hidden = true;
+  $("#pap-cadrage-txt").textContent = "Touche le centre du carré n° 1 (" + NOMS_COINS[0] + ").";
+  papierDessinerPhoto();
+}
+async function papierRedresser() {
+  const im = pap.img, info = $("#pap-info");
+  $("#pap-cadrage-txt").textContent = "Redressement de la page…";
+  await new Promise((r) => setTimeout(r, 20));
+  let g = im.g;
+  if (Math.max(...pap.coins.map((p, i) => Math.hypot(p[0] - pap.coins[(i + 1) % 4][0], p[1] - pap.coins[(i + 1) % 4][1]))) > FICHE.L * FICHE.pxmm * 2) g = flouBoite(g, im.w, im.h, 1);   /* évite le crénelage si la photo est très grande */
+  const gg = g instanceof Uint8ClampedArray ? g : Uint8ClampedArray.from(g);
+  pap.page = redresserPage(gg, im.w, im.h, pap.coins);
+  pap.num = lireNumeroPage(pap.page);
+  const sel = $("#pap-page"); vider(sel);
+  for (let i = 1; i <= nbPagesFiche(); i++) sel.append(el("option", { value: String(i), texte: "Page " + i + " sur " + nbPagesFiche() }));
+  if (pap.num < 1 || pap.num > nbPagesFiche()) { pap.num = 1; info.textContent = "Numéro de page illisible : choisis la page à la main."; $("#pap-cadrage-txt").textContent = "Cadrage fait. Choisis le numéro de page ci-dessous."; }
+  else { $("#pap-cadrage-txt").textContent = "Cadrage fait. C’est la page " + pap.num + " sur " + nbPagesFiche() + "."; }
+  sel.value = String(pap.num);
+  pap.manuel = null; papierDessinerPhoto();
+  papierAnalyser();
+}
+/* Découpe les cases, repasse les lettres et affiche la grille de vérification. */
+function papierAnalyser() {
+  clearTimeout(pap.minuteur);
+  const zone = $("#pap-grille"); vider(zone); $("#pap-resultat").hidden = false; $("#pap-bilan").textContent = "Analyse des cases…";
+  const bin = binariserPage(pap.page, pap.seuil), debutIdx = (pap.num - 1) * PAR_PAGE;
+  pap.cases = [];
+  let i = 0;
+  const suite = () => {
+    const fin = Math.min(PAR_PAGE, i + 4);
+    for (; i < fin; i++) {
+      const car = CHARS[debutIdx + i]; if (car === undefined) { i = PAR_PAGE; break; }
+      const c = decouperCase(bin, pap.page.w, i); nettoyerCase(c);
+      const traits = c.encre > 0 ? vectoriserCase(c) : [];
+      const item = { car: car, traits: traits, encre: c.encre, ok: traits.length > 0 };
+      pap.cases.push(item); papierCarteCase(zone, item);
+    }
+    const n = pap.cases.filter((x) => x.ok).length;
+    $("#pap-bilan").textContent = n + " lettre(s) trouvée(s) sur " + pap.cases.length + " cases de cette page.";
+    if (i < PAR_PAGE && debutIdx + i < CHARS.length) pap.minuteur = setTimeout(suite, 0);
+    else { $("#pap-importer").disabled = false; }
+  };
+  $("#pap-importer").disabled = true; suite();
+}
+/* Une carte par case : coche + aperçu du trait repassé. */
+function papierCarteCase(zone, item) {
+  const cv = el("canvas", { width: "72", height: "72", "aria-hidden": "true" }), ctx = cv.getContext("2d");
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--carte") || "#fff"; ctx.fillRect(0, 0, 72, 72);
+  const col = couleurs();
+  ctx.strokeStyle = col.bord; ctx.setLineDash([2, 3]); const yb = 72 * G.base / BOITE; ctx.beginPath(); ctx.moveTo(0, yb); ctx.lineTo(72, yb); ctx.stroke(); ctx.setLineDash([]);
+  dessinerTraits(ctx, item.traits, 72 / BOITE, 0, 0, col.encre);
+  const cb = el("input", { type: "checkbox", autocomplete: "off", "aria-label": "Importer " + nomCar(item.car) });
+  cb.checked = item.ok; cb.disabled = !item.traits.length;
+  cb.addEventListener("change", () => { item.ok = cb.checked; });
+  zone.append(el("label", { classe: "pap-case" + (item.traits.length ? "" : " vide") }, [cv, el("span", {}, [cb, document.createTextNode(" " + item.car)]), el("small", { texte: item.traits.length ? "" : "vide" })]));
+}
+/* Ajoute les lettres cochées à la police ouverte (nouvelle version, ou première version si elle est vide). */
+async function papierImporter() {
+  const p = etat.courant; if (!p) { annoncer("Ouvre d’abord une police."); return; }
+  const choisies = pap.cases.filter((x) => x.ok && x.traits.length);
+  if (!choisies.length) { annoncer("Aucune lettre à importer sur cette page."); return; }
+  $("#pap-importer").disabled = true;
+  await creerInstantane(p, "auto", "Avant import papier (page " + pap.num + ")");          /* on garde un point de retour */
+  let ajoutees = 0, pleines = 0;
+  choisies.forEach((x) => {
+    const g = glyphe(p, x.car, true), traits = clone(x.traits);
+    const vide = g.versions.find((v) => !v.traits.length);
+    if (vide) { vide.traits = traits; vide.actif = true; ajoutees++; }
+    else if (g.versions.length < MAX_VERSIONS) { const v = versionVide(); v.traits = traits; g.versions.push(v); ajoutees++; }
+    else pleines++;
+  });
+  await sauverPolice(p); etat.sale = false;
+  $("#pap-importer").disabled = false;
+  $("#pap-fin").hidden = false;
+  $("#pap-fin-txt").textContent = ajoutees + " lettre(s) ajoutée(s) à « " + p.nom + " »" + (pleines ? " (" + pleines + " ignorée(s) : déjà 5 versions)." : ".") + " Importe une autre page, ou ouvre l’atelier pour retoucher.";
+  annoncer(ajoutees + " lettre(s) importée(s).");
+}
+function brancherPapier() {
+  $("#pap-pdf").addEventListener("click", () => { telecharger(fabriquerPDF(), "pimp-my-font-fiche.pdf"); annoncer("Fiche téléchargée."); });
+  $("#pap-photo").addEventListener("click", () => $("#pap-in-photo").click());
+  $("#pap-fichier").addEventListener("click", () => $("#pap-in-fic").click());
+  ["#pap-in-photo", "#pap-in-fic"].forEach((s) => $(s).addEventListener("change", async (e) => { const f = e.target.files[0]; e.target.value = ""; $("#pap-fin").hidden = true; await papierCharger(f); }));
+  $("#pap-coins").addEventListener("click", papierModeManuel);
+  $("#pap-page").addEventListener("change", (e) => { pap.num = Number(e.target.value); papierAnalyser(); });
+  $("#pap-seuil").addEventListener("input", (e) => { pap.seuil = Number(e.target.value) / 100; clearTimeout(pap.mintSeuil); pap.mintSeuil = setTimeout(() => { if (pap.page) papierAnalyser(); }, 250); });
+  $("#pap-importer").addEventListener("click", papierImporter);
+  $("#pap-cv-photo").addEventListener("click", async (e) => {
+    if (!pap.manuel || !pap.img) return;
+    const r = e.currentTarget.getBoundingClientRect(), k = pap.vue;
+    pap.manuel.push([(e.clientX - r.left) / r.width * e.currentTarget.width / k, (e.clientY - r.top) / r.height * e.currentTarget.height / k]);
+    if (pap.manuel.length < 4) { $("#pap-cadrage-txt").textContent = "Touche le centre du carré n° " + (pap.manuel.length + 1) + " (" + NOMS_COINS[pap.manuel.length] + ")."; papierDessinerPhoto(); }
+    else { pap.coins = pap.manuel.slice(); papierDessinerPhoto(); await papierRedresser(); }
+  });
 }
 
 /* ===== SECTION : Installation sur l’écran d’accueil (PWA) ===== */
