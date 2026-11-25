@@ -1,13 +1,13 @@
 /*
-  Projet : Pimp My Font  ·  Version : 0.5.6  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.6.0  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Service worker : garde l’appli en mémoire pour qu’elle marche sans connexion.
 */
 /* ===== SECTION : Constantes ===== */
 /* Changer ce nom à chaque nouvelle version : sinon les anciens fichiers restent servis. */
-const NOM_CACHE = "pimpmypolice-v0.5.6";
-const FICHIERS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
+const NOM_CACHE = "pimpmypolice-v0.6.0";
+const FICHIERS = ["./", "./index.html", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 
 /* ===== SECTION : Installation : met les fichiers en cache ===== */
 self.addEventListener("install", (e) => {
@@ -24,5 +24,6 @@ self.addEventListener("activate", (e) => {
 /* ===== SECTION : Requêtes : cache d’abord, réseau en secours ===== */
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  if (new URL(e.request.url).origin !== self.location.origin) return;   /* les appels au serveur de compte ne passent jamais par le cache */
   e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request).catch(() => caches.match("./index.html"))));
 });

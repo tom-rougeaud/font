@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Projet : Pimp My Font  ·  Version : 0.5.6 (version papier)  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.6.0 (compte et synchronisation)  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Paliers 1 à 3 : atelier, versions, historique, corbeille, aperçu, lissage, recadrage auto, export TTF.
@@ -23,7 +23,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pimp My Font">
 <!-- Politique de sécurité : aucune ressource distante n’est autorisée. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; manifest-src 'self'; worker-src 'self'; connect-src https://*.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Pimp My Font — fabrique ta propre police</title>
 <style>
 /* ===== SECTION : Variables (palette marine/ardoise, accents sourds, aucun néon) ===== */
@@ -76,7 +76,7 @@ h3{margin:1.2rem 0 .5rem;font-size:1.1rem}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 :focus-visible{outline:3px solid var(--ocre);outline-offset:2px}
 .rang{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem 0}
-input[type=text],input[type=number],textarea{font:inherit;padding:.5rem .7rem;border:1px solid var(--bord);
+input[type=text],input[type=password],input[type=number],textarea{font:inherit;padding:.5rem .7rem;border:1px solid var(--bord);
   border-radius:10px;background:var(--carte);color:var(--encre);min-height:44px;max-width:100%}
 textarea{width:100%;min-height:90px}
 select{font:inherit;padding:.5rem .7rem;border:1px solid var(--bord);border-radius:10px;background:var(--carte);color:var(--encre);min-height:44px;max-width:100%}
@@ -208,9 +208,11 @@ body.en-edition .nav,body.en-edition .pied{display:none}
     "Word, PowerPoint, Pages, Affinity : la police apparaît dans la liste après l’installation (relance le logiciel)."
   ],
   "confidentialite": [
-    "Tes dessins et tes polices restent sur ton appareil, dans la mémoire du navigateur.",
-    "Rien n’est envoyé à un serveur, rien n’est collecté, aucun traceur n’est utilisé.",
-    "Aucun nom ni aucune adresse n’est demandé.",
+    "Tes dessins et tes polices restent sur ton appareil, dans la mémoire du navigateur (et, si tu crées un compte, dans ton compte, chiffrées).",
+    "Sans compte, rien n’est envoyé à un serveur. Avec un compte (facultatif), chaque police est chiffrée dans ton navigateur avant l’envoi : le responsable du projet et l’hébergeur ne voient que du texte illisible. Le code de récupération est la seule autre clé : sans lui ni ton mot de passe, personne ne peut rouvrir tes polices.",
+    "Compte : un simple pseudo et un mot de passe (stocké sous forme d’empreinte irréversible). Serveurs : Supabase. Restent visibles côté serveur : ton pseudo, le nombre de polices et leurs dates de modification. Pas envoyés : la corbeille, l’historique, les préférences et les photos de fiches. Tu peux effacer tes données du serveur ou supprimer ton compte à tout moment (onglet Compte).",
+    "Aucun traceur n’est utilisé et rien d’autre n’est collecté.",
+    "Aucun nom ni aucune adresse n’est demandé : un compte se crée avec un simple pseudo.",
     "Le fichier de sauvegarde (JSON) est à toi : garde-le et protège-le toi-même.",
     "Version papier : la photo ou le scan reste dans ton navigateur ; il est lu sur ton appareil, jamais envoyé, et n’est pas conservé (seuls les traits repassés des lettres le sont).",
     "Si tu vides les données du navigateur, ton travail peut disparaître : exporte régulièrement ta sauvegarde."
@@ -244,6 +246,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <button class="btn sec" data-aller="apercu">3 · Aperçu</button>
   <button class="btn sec" data-aller="export">4 · Sauvegarde</button>
   <button class="btn sec" data-aller="histo">Historique</button>
+  <button class="btn sec" data-aller="compte">👤 Compte</button>
   <button class="btn sec" data-aller="aide">Aide</button>
 </nav>
 <p id="etape-txt" class="etape" aria-live="polite"></p>
@@ -266,6 +269,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <button class="choix" id="choix-num" type="button"><strong>✏ Version numérique</strong><span>Tu traces tes lettres à la main, au stylet ou à la souris, sur ton téléphone ou ton ordinateur.</span></button>
       <button class="choix" id="choix-pap" type="button"><strong>🖨 Version papier</strong><span>Tu imprimes une fiche, tu écris au feutre noir, puis tu photographies ou scannes : l’appli découpe et repasse tes lettres.</span></button>
     </div>
+    <p id="sync-accueil" class="discret" aria-live="polite"></p>
     <div id="liste-polices" class="liste-polices"></div>
   </section>
 
@@ -475,6 +479,16 @@ body.en-edition .nav,body.en-edition .pied{display:none}
     </div>
   </section>
 
+  <!-- Écran : Compte (facultatif) -->
+  <section id="ecran-compte" data-ecran="compte" hidden>
+    <h2 tabindex="-1">Compte et synchronisation</h2>
+    <div id="compte-contenu"></div>
+    <div class="carte"><h3 style="margin-top:0">Mises à jour de l’appli</h3>
+      <p class="discret">L’appli cherche seule une nouvelle version chaque jour. Tu peux aussi lancer la recherche à la main.</p>
+      <div class="rang"><button class="btn sec btn-chercher-maj" type="button">🔄 Rechercher les mises à jour</button></div>
+      <p class="discret maj-etat" aria-live="polite"></p></div>
+  </section>
+
   <!-- Écran : Aide -->
   <section id="ecran-aide" data-ecran="aide" hidden>
     <h2 tabindex="-1">Aide</h2>
@@ -488,7 +502,9 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <section id="ecran-apropos" data-ecran="apropos" hidden>
     <h2 tabindex="-1">À propos</h2>
     <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
-      <p class="discret">Version 0.5.6</p>
+      <p class="discret">Version 0.6.0</p>
+      <div class="rang"><button class="btn sec btn-chercher-maj" type="button">🔄 Rechercher les mises à jour</button></div>
+      <p class="discret maj-etat" aria-live="polite"></p>
       <button class="btn" id="btn-installer">Installer l’appli</button></div>
   </section>
 
@@ -539,6 +555,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   </div>
 </dialog>
 
+<script src="config.js"></script>
 <script>
 /* ===== SECTION : Constantes ===== */
 (function () {
@@ -768,6 +785,7 @@ async function sauverPolice(p) {
   p.modifie = maintenant();
   const ok = await Stockage.set("proj_" + p.id, p);
   if (!ok) annoncer("Stockage plein ou indisponible. Exporte ta sauvegarde !");
+  else planifierSync();
   return ok;
 }
 function planifierSauvegarde() {
@@ -881,6 +899,9 @@ const r1 = (x) => Math.round(x * 10) / 10;
 /* Cible verticale [haut, bas] (repère de l’éditeur) selon le caractère ; null = pas de mise à l’échelle. */
 function ciblePour(c) {
   if ("ABCDEFGHIJKLMNOPRSTUVWXYZ0123456789".indexOf(c) >= 0) return [G.caps, G.base];
+  if ("ÀÂÄÉÈÊËÎÏÔÖÙÛÜŸ".indexOf(c) >= 0) return [40, G.base];    /* capitale + accent : tout l’ensemble tient entre 40 et la ligne de base */
+  if (c === "Ç") return [G.caps, 800];                        /* cédille : la capitale reste lisible, la cédille descend un peu */
+  if ("ŒÆ".indexOf(c) >= 0) return [G.caps, G.base];
   if (c === "Q") return [G.caps, 800];                       /* la queue du Q descend un peu */
   if ("acemnorsuvwxz".indexOf(c) >= 0) return [G.xh, G.base];  /* minuscules basses */
   if ("bdfhkl".indexOf(c) >= 0) return [G.asc, G.base];        /* ascendantes */
@@ -1668,7 +1689,7 @@ function dessinerApercu() {
 
 /* ===== SECTION : Accueil (liste des polices) ===== */
 async function afficherAccueil() {
-  const zone = $("#liste-polices"); vider(zone);
+  const zone = $("#liste-polices"); vider(zone); majAccueilCompte();
   if (!etat.projets.length) zone.append(el("p", { classe: "carte", texte: "Aucune police pour l’instant. Touche « Nouvelle police » pour commencer." }));
   etat.projets.forEach((p) => {
     const n = nbFaits(p);
@@ -1685,6 +1706,7 @@ async function afficherAccueil() {
           etat.corbeille.push({ id: nouvelId(), ts: maintenant(), type: "police", projId: p.id, projNom: p.nom, car: "", data: clone(p) });
           await sauverCorbeille(); await Stockage.del("proj_" + p.id);
           etat.projets = etat.projets.filter((x) => x !== p);
+          await noterSuppression(p.id);
           if (etat.courant === p) { etat.courant = null; etat.prefs.courantId = null; $("#nom-courant").textContent = ""; await sauverPrefs(); }
           afficherAccueil(); annoncer("Police mise à la corbeille.");
         } })
@@ -1810,8 +1832,9 @@ async function importerFichier(fichier) {
   annoncer(propres.length + " police(s) importée(s)."); afficherAccueil();
 }
 async function toutEffacer() {
-  if (!await confirmer("Effacer toutes tes données ?", "Polices, historique et corbeille seront supprimés de cet appareil.", "Continuer")) return;
+  if (!await confirmer("Effacer toutes tes données ?", "Polices, historique et corbeille seront supprimés de cet appareil" + (Api.uid() ? ". Tu seras aussi déconnecté(e) ; tes polices restent dans ton compte." : "."), "Continuer")) return;
   if (!await confirmer("Dernière confirmation", "C’est définitif. As-tu exporté ta sauvegarde ?", "Oui, tout effacer")) return;
+  if (Api.uid()) { await Api.auth.deconnecter(); await Chiffre.oublier(); Compte.etat = "deconnecte"; Compte.vue = null; majStatutSync(""); }
   await Stockage.tout_effacer();
   etat.projets = []; etat.courant = null; etat.corbeille = []; etat.snaps = [];
   etat.prefs = Object.assign(prefsDefaut(), { theme: etat.prefs.theme, taille: etat.prefs.taille });
@@ -1850,6 +1873,7 @@ function aller(nom) {
   if (nom === "apercu") { chargerReglagesUI(); dessinerApercu(); }
   if (nom === "papier") { $("#pap-police").textContent = "Police ouverte : « " + etat.courant.nom + " ». Les lettres importées s’ajoutent à cette police."; $("#pap-nbpages").textContent = String(nbPagesFiche()); }
   majEtape(nom);
+  if (nom === "compte") afficherCompte();
   if (nom === "histo") afficherHistorique();
   if (nom === "export") { majDerniereExport(); majExport(); }
   const h = document.querySelector('[data-ecran="' + nom + '"] h2'); if (h) h.focus();
@@ -2527,13 +2551,670 @@ function brancherInstall() {
 function enregistrerSW() {
   if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) return;
   navigator.serviceWorker.register("sw.js").then((reg) => {
+    regSW = reg;
+    if (reg.waiting && navigator.serviceWorker.controller) signalerMaj(reg.waiting);   /* une version téléchargée attend déjà : on la propose */
     reg.addEventListener("updatefound", () => {
       const w = reg.installing; if (!w) return;
-      w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) { majSW = w; $("#maj-dispo").hidden = false; } });
+      w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) signalerMaj(w); });
     });
   }).catch(() => { /* hors ligne impossible : l’appli marche quand même en ligne */ });
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (rechargeVoulu) location.reload(); });
   $("#btn-maj").addEventListener("click", () => { rechargeVoulu = true; if (majSW) majSW.postMessage("activer"); else location.reload(); });
+}
+
+/* ===== SECTION : Compte, chiffrement de bout en bout et synchronisation (v0.6.0) =====
+   Projet : Pimp My Font  ·  Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
+   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
+   Adapté du bloc « Compte » et du module de chiffrement de l’appli Fiches (même méthode) :
+   - connexion par pseudo (faux e-mail pseudo@pmf.pseudo.invalid, propre à cette appli) ;
+   - chaque police est chiffrée DANS LE NAVIGATEUR (AES-GCM) avant l’envoi : le serveur ne voit que du texte illisible ;
+   - la clé de chiffrement est enfermée par le mot de passe ET par un code de récupération ;
+   - l’appli reste « locale d’abord » : sans compte ou sans réseau, tout marche comme avant. */
+
+const CFG = (typeof PMF_CONFIG !== "undefined" && PMF_CONFIG) ? PMF_CONFIG : { SUPABASE_URL: "", SUPABASE_ANON_KEY: "" };
+const APP_ID = "pmf";                                   /* identifiant court de l’appli (comptes propres à l’appli) */
+const DOMAINE_PSEUDO = APP_ID + ".pseudo.invalid";      /* faux domaine réservé (.invalid) : un pseudo n’a jamais de vraie adresse e-mail */
+const LONGUEUR_MIN = 8;                                 /* longueur minimale du mot de passe */
+const SYMBOLES = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~";  /* caractères spéciaux comptés par Supabase */
+const DELAI_SYNC = 4000;                                /* ms d’attente après la dernière modification avant d’envoyer */
+
+/* ----- Règles (fonctions pures) ----- */
+const normPseudo = (s) => String(s == null ? "" : s).trim().toLowerCase();
+const pseudoValide = (s) => /^([a-z0-9_-]{6,20}|tom)$/.test(s);          /* 6 à 20 caractères : a-z, 0-9, - et _ */
+const octetsUtf8 = (s) => new TextEncoder().encode(s).length;
+function evaluerMdp(pw) {
+  pw = String(pw == null ? "" : pw);
+  const r = { longueur: pw.length >= LONGUEUR_MIN, minuscule: /[a-z]/.test(pw), majuscule: /[A-Z]/.test(pw), chiffre: /[0-9]/.test(pw), symbole: false, tropLong: octetsUtf8(pw) > 72 };
+  for (const c of pw) if (SYMBOLES.indexOf(c) >= 0) { r.symbole = true; break; }
+  r.ok = r.longueur && r.minuscule && r.majuscule && r.chiffre && r.symbole && !r.tropLong;
+  return r;
+}
+
+/* ===== SECTION : Client Supabase minimal (fetch, sans bibliothèque ni CDN) ===== */
+const Api = (() => {
+  let session = null, rafraichit = null;
+  const configure = () => !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && CFG.SUPABASE_URL.indexOf("https://") === 0);
+  const entetes = (extra, sansAuth) => Object.assign({ apikey: CFG.SUPABASE_ANON_KEY, Authorization: "Bearer " + ((!sansAuth && session) ? session.access_token : CFG.SUPABASE_ANON_KEY) }, extra || {});
+  const erreurReseau = (e) => { const x = new Error("Réseau indisponible"); x.reseau = true; x.cause = e; return x; };
+  async function lireCorps(r) { const t = await r.text(); if (!t) return null; try { return JSON.parse(t); } catch (e) { return t; } }
+  function erreurHttp(r, b) {
+    const x = new Error((b && (b.message || b.msg || b.error_description || b.error || b.hint)) || ("Erreur " + r.status));
+    x.status = r.status; return x;
+  }
+  async function envoyer(chemin, opt, sansAuth) {
+    let r;
+    try { r = await fetch(CFG.SUPABASE_URL + chemin, { method: opt.method || "GET", headers: entetes(opt.headers, sansAuth), body: opt.body }); }
+    catch (e) { throw erreurReseau(e); }
+    const b = await lireCorps(r);
+    return { r, b };
+  }
+  async function memoriser(s) {
+    session = s;
+    if (s) await Stockage.set("session", { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: s.expires_at, user: s.user });
+    else await Stockage.del("session");
+  }
+  const depuisJeton = (j) => ({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (Math.floor(Date.now() / 1000) + (j.expires_in || 3600)), user: j.user || (session && session.user) || null });
+  async function restaurer() { const s = await Stockage.get("session"); if (s && s.access_token && s.user) { session = s; return true; } return false; }
+  /* Renouvelle le jeton d’accès (une seule requête à la fois). */
+  function rafraichir() {
+    if (rafraichit) return rafraichit;
+    if (!session || !session.refresh_token) return Promise.reject(new Error("Session expirée"));
+    rafraichit = (async () => {
+      const { r, b } = await envoyer("/auth/v1/token?grant_type=refresh_token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: session.refresh_token }) }, true);
+      if (!r.ok) { if (r.status >= 400 && r.status < 500) await memoriser(null); throw erreurHttp(r, b); }
+      await memoriser(depuisJeton(b));
+    })().finally(() => { rafraichit = null; });
+    return rafraichit;
+  }
+  /* Requête authentifiée, avec renouvellement automatique du jeton. */
+  async function appeler(chemin, opt, reessai) {
+    if (session && session.expires_at - Math.floor(Date.now() / 1000) <= 60) await rafraichir();
+    const { r, b } = await envoyer(chemin, opt || {});
+    if (r.status === 401 && !reessai && session) { await rafraichir(); return appeler(chemin, opt, true); }
+    if (!r.ok) throw erreurHttp(r, b);
+    return b;
+  }
+  const qs = (p) => { const o = []; for (const k in p) if (p[k] != null) o.push(encodeURIComponent(k) + "=" + encodeURIComponent(p[k])); return o.length ? "?" + o.join("&") : ""; };
+  const JSONH = { "Content-Type": "application/json" };
+  const auth = {
+    async connecter(email, mdp) {
+      const { r, b } = await envoyer("/auth/v1/token?grant_type=password", { method: "POST", headers: JSONH, body: JSON.stringify({ email: email, password: mdp }) }, true);
+      if (!r.ok) throw erreurHttp(r, b);
+      await memoriser(depuisJeton(b)); return session;
+    },
+    async reglages() { try { const { r, b } = await envoyer("/auth/v1/settings", {}, true); return r.ok && b && typeof b === "object" ? b : null; } catch (e) { return null; } },
+    async inscrire(email, mdp, pseudo) {
+      const { r, b } = await envoyer("/auth/v1/signup", { method: "POST", headers: JSONH, body: JSON.stringify({ email: email, password: mdp, data: { pseudo: pseudo } }) }, true);
+      if (!r.ok) throw erreurHttp(r, b);
+      if (b && b.access_token) { await memoriser(depuisJeton(b)); return true; }
+      return false;
+    },
+    async deconnecter() {
+      if (session) { try { await envoyer("/auth/v1/logout", { method: "POST" }); } catch (e) { /* ignoré : on oublie la session localement */ } }
+      await memoriser(null);
+    },
+    changerMdp: (pw) => appeler("/auth/v1/user", { method: "PUT", headers: JSONH, body: JSON.stringify({ password: pw }) })
+  };
+  const rest = {
+    select: (table, params) => appeler("/rest/v1/" + table + qs(params || {}), { headers: { Accept: "application/json" } }),
+    async upsert(table, lignes, conflit) { await appeler("/rest/v1/" + table + "?on_conflict=" + conflit, { method: "POST", headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(lignes) }); },
+    rpc: (nom, args) => appeler("/rest/v1/rpc/" + nom, { method: "POST", headers: JSONH, body: JSON.stringify(args || {}) })
+  };
+  return { configure, restaurer, auth, rest, session: () => session, user: () => session && session.user, uid: () => session && session.user && session.user.id };
+})();
+
+/* ===== SECTION : Chiffrement de bout en bout (WebCrypto) =====
+   Une clé de données aléatoire (AES-GCM 256) chiffre les polices. Cette clé est enfermée deux fois :
+   par le mot de passe (PBKDF2, 310 000 tours) et par un code de récupération (120 bits). */
+const Chiffre = (() => {
+  const ITERATIONS = 310000;                              /* coût d’une tentative de mot de passe */
+  const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";    /* 32 signes sans 0/O/1/I : 5 bits chacun */
+  const PREFIXE = "enc1:";                                /* version du format chiffré */
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const etat0 = { brut: null, cle: null, rec: null, memo: null };   /* brut : clé de données en mémoire ; memo : mot de passe saisi à l’instant */
+  const E = Object.assign({}, etat0);
+
+  const b64e = (u) => { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); };
+  const b64d = (t) => { const s = atob(t), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+  const alea = (n) => { const u = new Uint8Array(n); crypto.getRandomValues(u); return u; };
+  const colle = (a, b) => { const u = new Uint8Array(a.length + b.length); u.set(a, 0); u.set(b, a.length); return u; };
+  async function cleMdp(mdp, sel) {
+    const k = await crypto.subtle.importKey("raw", enc.encode(String(mdp).normalize("NFKC")), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64d(sel), iterations: ITERATIONS, hash: "SHA-256" }, k, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  const normCode = (c) => String(c || "").toUpperCase().split("").filter((x) => ALPHABET.indexOf(x) >= 0).join("");
+  async function cleCode(code) { const d = await crypto.subtle.digest("SHA-256", enc.encode("pmf-recup:" + normCode(code))); return crypto.subtle.importKey("raw", d, "AES-GCM", false, ["encrypt", "decrypt"]); }
+  function nouveauCode() { const u = alea(24); let s = ""; for (let i = 0; i < 24; i++) { s += ALPHABET.charAt(u[i] & 31); if (i % 4 === 3 && i < 23) s += "-"; } return s; }
+  async function scelle(cle, octets) { const iv = alea(12); const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, cle, octets); return b64e(colle(iv, new Uint8Array(ct))); }
+  async function ouvre(cle, b64) { const u = b64d(b64); return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.subarray(0, 12) }, cle, u.subarray(12))); }
+  const cleDonnees = (brut) => crypto.subtle.importKey("raw", brut, "AES-GCM", false, ["encrypt", "decrypt"]);
+
+  /* Petite base locale (IndexedDB) : garde la clé NON EXPORTABLE pour rouvrir l’appli sans retaper le mot de passe. */
+  const IDB_NOM = "pimpmypolice_chiffre";
+  function idb(fn) {
+    return new Promise((ok) => {
+      try {
+        const rq = indexedDB.open(IDB_NOM, 1);
+        rq.onupgradeneeded = () => { rq.result.createObjectStore("k"); };
+        rq.onerror = () => ok(null);
+        rq.onsuccess = () => {
+          try { const tx = rq.result.transaction("k", "readwrite"); const r = fn(tx.objectStore("k")); tx.oncomplete = () => ok(r && r.result !== undefined ? r.result : null); tx.onerror = () => ok(null); } catch (e) { ok(null); }
+        };
+      } catch (e) { ok(null); }
+    });
+  }
+  const cacheLire = (uid) => idb((s) => s.get(uid));
+  const cacheEcrire = (uid, cle, fp) => idb((s) => s.put({ cle: cle, fp: fp }, uid));
+  const cacheEffacer = (uid) => idb((s) => s.delete(uid));
+  const empreinte = (rec) => String(rec && rec.wrap_rec || "").slice(0, 24);
+
+  async function retenir(brut) {
+    E.brut = brut; E.cle = await cleDonnees(brut);
+    if (Api.uid()) await cacheEcrire(Api.uid(), E.cle, empreinte(E.rec));
+  }
+  async function enregistrerCles(rec) {
+    await Api.rest.upsert("pmf_cles", [{ user_id: Api.uid(), salt: rec.salt, wrap_mdp: rec.wrap_mdp, wrap_rec: rec.wrap_rec, version: 1 }], "user_id");
+    E.rec = rec;
+  }
+  async function enfermerMdp(brut, mdp) { const sel = b64e(alea(16)); const k = await cleMdp(mdp, sel); return { salt: sel, wrap_mdp: await scelle(k, brut) }; }
+  /* Première installation : crée la clé, l’enferme, la publie ; renvoie le code de récupération à noter. */
+  async function installer(mdp) {
+    const brut = alea(32), code = nouveauCode();
+    const [a, b] = await Promise.all([enfermerMdp(brut, mdp), cleCode(code).then((k) => scelle(k, brut))]);
+    await enregistrerCles({ salt: a.salt, wrap_mdp: a.wrap_mdp, wrap_rec: b });
+    await retenir(brut); return code;
+  }
+  async function deverrouillerMdp(mdp) {
+    if (!E.rec) throw new Error("Aucune clé enregistrée.");
+    const k = await cleMdp(mdp, E.rec.salt); await retenir(await ouvre(k, E.rec.wrap_mdp));
+  }
+  async function reenfermer(mdp) { const e = await enfermerMdp(E.brut, mdp); await enregistrerCles({ salt: e.salt, wrap_mdp: e.wrap_mdp, wrap_rec: E.rec.wrap_rec }); }
+  async function deverrouillerCode(code, mdp) {
+    const k = await cleCode(code); await retenir(await ouvre(k, E.rec.wrap_rec));
+    if (mdp) await reenfermer(mdp);
+  }
+  /* Nouveau code de récupération : l’ancien cesse de fonctionner. */
+  async function nouveauCodeRecup() {
+    const code = nouveauCode(); const k = await cleCode(code); const w = await scelle(k, E.brut);
+    await enregistrerCles({ salt: E.rec.salt, wrap_mdp: E.rec.wrap_mdp, wrap_rec: w }); await retenir(E.brut); return code;
+  }
+  /* Au démarrage ou après connexion : « ok » (clé disponible), « verrouille » (mot de passe ou code requis), « aucune » (première installation). */
+  async function init() {
+    E.brut = null; E.cle = null; E.rec = null;
+    let rows;
+    try { rows = await Api.rest.select("pmf_cles", {}); }
+    catch (e) {
+      /* hors connexion : si la clé est déjà sur cet appareil, on continue avec la copie locale */
+      if (e && e.reseau) { const c = await cacheLire(Api.uid()); if (c && c.cle) { E.cle = c.cle; return "ok"; } }
+      throw e;
+    }
+    E.rec = (rows && rows[0]) || null;
+    if (!E.rec) { await cacheEffacer(Api.uid()); return "aucune"; }
+    const c = await cacheLire(Api.uid());
+    if (c && c.cle && c.fp === empreinte(E.rec)) { E.cle = c.cle; return "ok"; }
+    if (E.memo) { try { await deverrouillerMdp(E.memo); return "ok"; } catch (e) { return "verrouille"; } }
+    return "verrouille";
+  }
+  const memo = (m) => { E.memo = m; };
+  async function oublier() { const u = Api.uid(); E.brut = null; E.cle = null; E.rec = null; E.memo = null; if (u) await cacheEffacer(u); }
+  /* Chiffre / déchiffre un texte (une police entière, en JSON). */
+  async function sceller(texte) { return PREFIXE + await scelle(E.cle, enc.encode(texte)); }
+  async function desceller(t) { if (String(t).indexOf(PREFIXE) !== 0) throw new Error("format"); return dec.decode(await ouvre(E.cle, String(t).slice(PREFIXE.length))); }
+  return { init, memo, oublier, installer, deverrouillerMdp, deverrouillerCode, reenfermer, nouveauCodeRecup, sceller, desceller, normCode,
+    actif: () => !!E.cle, brutConnu: () => !!E.brut, aMemo: () => !!E.memo };
+})();
+
+/* ===== SECTION : Synchronisation des polices (dernière modification gagnante) ===== */
+const Sync = { enCours: false, rejouer: false, minuteur: null, dernier: 0, message: "", erreur: false };
+const syncPret = () => Compte.etat === "ok" && Chiffre.actif() && !!Api.uid();
+
+/* Planifie un envoi groupé (appelé après chaque enregistrement d’une police). */
+function planifierSync() {
+  if (!syncPret()) return;
+  clearTimeout(Sync.minuteur);
+  Sync.minuteur = setTimeout(() => { synchroniser(); }, DELAI_SYNC);
+}
+/* Note qu’une police a été supprimée ici, pour propager la suppression aux autres appareils. */
+async function noterSuppression(id) {
+  if (!Api.uid()) return;
+  etat.prefs.tombes = etat.prefs.tombes || {}; etat.prefs.tombes[id] = maintenant(); await sauverPrefs();
+  planifierSync();
+}
+function majStatutSync(msg, erreur) {
+  Sync.message = msg; Sync.erreur = !!erreur;
+  ["#sync-accueil", "#compte-statut"].forEach((s) => { const n = $(s); if (n) n.textContent = msg; });
+}
+async function pousserPolice(p) {
+  const chiffre = await Chiffre.sceller(JSON.stringify(p));
+  await Api.rest.upsert("pmf_polices", [{ id: p.id, user_id: Api.uid(), chiffre: chiffre, supprime: false, modifie: p.modifie, updated_at: new Date().toISOString() }], "user_id,id");
+}
+async function pousserTombe(id, ts) {
+  await Api.rest.upsert("pmf_polices", [{ id: id, user_id: Api.uid(), chiffre: null, supprime: true, modifie: ts, updated_at: new Date().toISOString() }], "user_id,id");
+}
+/* Récupère une police du serveur, la déchiffre, la contrôle puis l’enregistre sans toucher à sa date de modification. */
+async function tirerPolice(id) {
+  const rows = await Api.rest.select("pmf_polices", { select: "id,chiffre,modifie", id: "eq." + id });
+  const row = rows && rows[0]; if (!row || !row.chiffre) return false;
+  let obj; try { obj = JSON.parse(await Chiffre.desceller(row.chiffre)); } catch (e) { return "illisible"; }
+  const c = validerPolice(migrer(obj)); if (!c || c.id !== id) return "illisible";
+  c.modifie = row.modifie;
+  if (editeurOuvert() && etat.courant && etat.courant.id === id) return "reporte";   /* on n’écrase pas ce que la personne est en train de dessiner */
+  const i = etat.projets.findIndex((p) => p.id === id);
+  if (i < 0 && etat.projets.length >= MAX_POLICES) return "plein";
+  if (i >= 0) etat.projets[i] = c; else etat.projets.push(c);
+  if (etat.courant && etat.courant.id === id) etat.courant = c;
+  etat.projets.sort((a, b) => a.cree - b.cree);
+  await Stockage.set("proj_" + id, c);
+  return true;
+}
+/* Une police supprimée ailleurs : elle va dans la corbeille de cet appareil (récupérable 30 jours). */
+async function supprimerLocale(p) {
+  etat.corbeille.push({ id: nouvelId(), ts: maintenant(), type: "police", projId: p.id, projNom: p.nom, car: "", data: clone(p) });
+  await sauverCorbeille(); await Stockage.del("proj_" + p.id);
+  etat.projets = etat.projets.filter((x) => x !== p);
+  if (etat.courant === p) { etat.courant = null; etat.prefs.courantId = null; $("#nom-courant").textContent = ""; await sauverPrefs(); }
+}
+/* Compare ce qui est ici et sur le serveur, puis envoie ou récupère ce qui est plus récent. */
+async function synchroniser(manuel) {
+  if (!syncPret()) return;
+  if (Sync.enCours) { Sync.rejouer = true; return; }
+  Sync.enCours = true; Sync.rejouer = false; clearTimeout(Sync.minuteur);
+  majStatutSync("Synchronisation en cours…");
+  let monte = 0, descend = 0, supprime = 0, illisibles = 0, reportees = 0;
+  try {
+    const distant = await Api.rest.select("pmf_polices", { select: "id,modifie,supprime" });
+    const dMap = new Map((distant || []).map((r) => [r.id, r]));
+    /* 1) suppressions faites ici */
+    const tombes = etat.prefs.tombes || {};
+    for (const id of Object.keys(tombes)) {
+      const d = dMap.get(id), ts = tombes[id];
+      if (etat.projets.some((p) => p.id === id) || (d && !d.supprime && d.modifie > ts)) { delete tombes[id]; continue; }   /* restaurée ici, ou modifiée ailleurs après coup */
+      if (!d || !d.supprime) await pousserTombe(id, ts);
+      delete tombes[id]; dMap.set(id, { id: id, modifie: ts, supprime: true });
+    }
+    etat.prefs.tombes = tombes; await sauverPrefs();
+    /* 2) polices présentes ici */
+    for (const p of etat.projets.slice()) {
+      const d = dMap.get(p.id);
+      if (!d || p.modifie > d.modifie) { await pousserPolice(p); monte++; }
+      else if (d.supprime) { await supprimerLocale(p); supprime++; }
+      else if (p.modifie < d.modifie) {
+        const r = await tirerPolice(p.id);
+        if (r === true) descend++; else if (r === "illisible") illisibles++; else if (r === "reporte") reportees++;
+      }
+    }
+    /* 3) polices présentes seulement sur le serveur */
+    for (const d of (distant || [])) {
+      if (d.supprime || etat.projets.some((p) => p.id === d.id)) continue;
+      const r = await tirerPolice(d.id);
+      if (r === true) descend++; else if (r === "illisible") illisibles++; else if (r === "plein") { annoncer("Limite de " + MAX_POLICES + " polices atteinte : certaines polices du compte ne sont pas téléchargées."); }
+    }
+    Sync.dernier = maintenant();
+    let msg = "Synchronisé le " + dateFr(Sync.dernier) + (monte || descend || supprime ? " (" + monte + " envoyée(s), " + descend + " reçue(s)" + (supprime ? ", " + supprime + " supprimée(s)" : "") + ")" : " : tout est à jour") + ".";
+    if (illisibles) msg += " " + illisibles + " police(s) illisible(s) avec ta clé.";
+    if (reportees) msg += " Une police en cours d’édition sera mise à jour à la prochaine synchronisation.";
+    majStatutSync(msg, illisibles > 0);
+    if (descend || supprime) { const e = document.querySelector('[data-ecran="accueil"]'); if (e && !e.hidden) afficherAccueil(); }
+    if (manuel) annoncer("Synchronisation terminée.");
+  } catch (e) {
+    majStatutSync(e && e.reseau ? "Hors connexion : la synchronisation reprendra dès que le réseau revient." : "Synchronisation impossible : " + messageErreur(e), !(e && e.reseau));
+  } finally {
+    Sync.enCours = false;
+    if (Sync.rejouer) planifierSync();
+  }
+}
+
+/* Traduit une erreur technique en message clair. */
+function messageErreur(err) {
+  if (!err) return "Un problème est survenu. Réessaie.";
+  if (err.texte) return err.texte;
+  if (err.reseau) return "Réseau indisponible. Réessaie.";
+  const m = String(err.message || "");
+  if (/Invalid login/i.test(m)) return "Identifiant ou mot de passe incorrect.";
+  if (err.status === 429 || /rate limit|too many/i.test(m)) return "Trop de tentatives : patiente quelques minutes avant de réessayer.";
+  if (/already registered|already been registered/i.test(m)) return "Cet identifiant est déjà utilisé.";
+  if (/Database error saving new user/i.test(m)) return "Ce pseudo vient d’être pris : choisis-en un autre.";
+  return m || "Un problème est survenu. Réessaie.";
+}
+
+/* ===== SECTION : Écran « Compte » ===== */
+const Compte = {
+  etat: "deconnecte",   /* « deconnecte », « ok » (clé ouverte), « verrouille », « horsligne », « indisponible » (non configuré) */
+  vue: null             /* null = écran normal ; { code, suite, titre } = affichage du code de récupération */
+};
+
+/* Champ avec libellé ; les mots de passe ont un bouton Afficher / Masquer. */
+function champCompte(id, libelle, type, auto, extra) {
+  const input = el("input", Object.assign({ id: id, type: type, autocomplete: auto || "off", autocapitalize: "none", spellcheck: "false", required: "" }, extra || {}));
+  const rangee = [input];
+  if (type === "password") {
+    const b = el("button", { classe: "btn sec", type: "button", texte: "Afficher", "aria-pressed": "false" });
+    b.addEventListener("click", () => { const voir = input.type === "password"; input.type = voir ? "text" : "password"; b.textContent = voir ? "Masquer" : "Afficher"; b.setAttribute("aria-pressed", voir ? "true" : "false"); });
+    rangee.push(b);
+  }
+  return { input: input, bloc: el("div", null, [el("label", { for: id, texte: libelle }), el("div", { classe: "rang" }, rangee)]) };
+}
+/* Liste des règles du mot de passe : se coche en direct (✓ / ○, jamais la couleur seule). */
+function reglesMdp() {
+  const items = [["longueur", LONGUEUR_MIN + " caractères au minimum"], ["minuscule", "une lettre minuscule (a-z)"], ["majuscule", "une lettre majuscule (A-Z)"], ["chiffre", "un chiffre (0-9)"], ["symbole", "un caractère spécial"]];
+  const ul = el("ul", { classe: "discret" }), lis = {};
+  items.forEach((it) => { lis[it[0]] = el("li", { texte: "○ " + it[1] }); ul.append(lis[it[0]]); });
+  const aide = el("p", { classe: "discret", texte: "Caractères spéciaux acceptés : " + SYMBOLES.split("").join(" ") + " — les lettres accentuées sont permises dans le mot de passe, mais ne comptent pas comme caractère spécial." });
+  const alerte = el("p", { classe: "discret", role: "status" });
+  return { el: el("div", null, [ul, aide, alerte]), maj(pw) {
+    const r = evaluerMdp(pw);
+    items.forEach((it) => { lis[it[0]].textContent = (r[it[0]] ? "✓ " : "○ ") + it[1]; });
+    alerte.textContent = r.tropLong ? "Mot de passe trop long (72 octets au maximum)." : "";
+    return r;
+  } };
+}
+const messageZone = () => el("div", { classe: "msg-compte", role: "alert", style: "min-height:1.4em;font-weight:600" });
+function afficherMsg(zone, texte, ok) { zone.textContent = texte; zone.style.color = ok ? "var(--sauge)" : "var(--terre)"; }
+
+/* Affiche l’écran Compte selon l’état. */
+function afficherCompte() {
+  const zone = $("#compte-contenu"); if (!zone) return; vider(zone);
+  if (Compte.vue) { zone.append(vueCode()); return; }
+  zone.append(el("p", { id: "compte-statut", classe: "discret", role: "status", texte: Sync.message }));
+  if (!Api.configure() || Compte.etat === "indisponible") { zone.append(el("div", { classe: "carte" }, [el("p", { texte: "Le compte n’est pas disponible dans cette installation (fichier de configuration absent). L’appli fonctionne normalement, sur cet appareil seulement." })])); return; }
+  if (!Api.uid()) { zone.append(vueConnexion()); }
+  else if (Compte.etat === "verrouille") { zone.append(vueVerrou()); }
+  else { zone.append(vueConnecte()); }
+  zone.append(blocDonnees());
+}
+
+/* Bloc dépliable « Vos données » : ce qui est envoyé, qui y accède, quels tiers, quels droits. */
+function blocDonnees() {
+  const li = (g, t) => el("li", null, [el("strong", { texte: g }), t]);
+  return el("details", { classe: "carte" }, [
+    el("summary", { texte: "Tes données : qui y a accès ?" }),
+    el("ul", { classe: "discret" }, [
+      li("Envoyé : ", "ton pseudo, ton mot de passe sous forme d’empreinte irréversible (personne ne peut le relire, pas même le responsable du projet), et tes polices (traits des lettres, réglages, nom de la police), chiffrées."),
+      li("Qui y accède : ", "toi seul(e). Chaque police est chiffrée dans ton navigateur avant l’envoi : le responsable du projet et l’hébergeur ne voient que du texte illisible."),
+      li("Reste visible (technique) : ", "ton pseudo, les dates de création et de connexion, le nombre de polices, la date de leur dernière modification et la taille des envois."),
+      li("Pas synchronisés : ", "la corbeille, l’historique (instantanés), les préférences d’affichage et les photos de fiches (elles ne quittent jamais l’appareil)."),
+      li("Code de récupération : ", "si tu oublies ton mot de passe, seul ce code rouvre tes polices. Sans mot de passe ni code, personne ne peut les récupérer, pas même le responsable."),
+      li("Compte propre à cette appli : ", "ton pseudo n’existe que dans Pimp My Font. Un même pseudo dans une autre appli est un autre compte."),
+      li("Services tiers : ", "Supabase (base de données et comptes) et GitHub Pages (pages de l’appli, qui reçoit ton adresse IP comme tout site web). Aucun traceur, aucune publicité."),
+      li("Tes droits : ", "exporter tes polices, les effacer du serveur, ou supprimer ton compte à tout moment (onglet Compte). Le compte est facultatif.")
+    ])
+  ]);
+}
+
+/* ----- Connexion / création de compte ----- */
+function vueConnexion() {
+  let mode = "in", minuteur = null, dernier = 0;
+  const ident = champCompte("compte-id", "Pseudo", "text", "username", { placeholder: "Ton pseudo" });
+  const mdp = champCompte("compte-mdp", "Mot de passe", "password", "current-password");
+  const regles = reglesMdp();
+  const etatPseudo = el("div", { classe: "discret", "aria-live": "polite" });
+  const aidePseudo = el("p", { classe: "discret", texte: "Pseudo : 6 à 20 caractères — lettres, chiffres, tiret (-) et tiret bas (_), sans accent ni espace ; majuscules et minuscules sont équivalentes. Ce pseudo est propre à cette appli." });
+  const consent = el("input", { type: "checkbox", id: "compte-consent" });
+  const zoneCreation = el("div", { hidden: "" }, [aidePseudo, etatPseudo, regles.el,
+    el("label", { classe: "discret", style: "display:block;font-weight:400" }, [consent, " J’ai compris que mes polices seront envoyées sur un serveur, chiffrées : je dois noter mon code de récupération."])]);
+  const msg = messageZone();
+  const btn = el("button", { classe: "btn", type: "submit", texte: "Se connecter" });
+  const bascule = el("button", { classe: "btn sec", type: "button", texte: "Créer un compte" });
+  function changerMode(m) {
+    mode = m; btn.textContent = m === "in" ? "Se connecter" : "Créer mon compte"; bascule.textContent = m === "in" ? "Créer un compte" : "J’ai déjà un compte";
+    mdp.input.setAttribute("autocomplete", m === "in" ? "current-password" : "new-password"); ident.input.setAttribute("autocomplete", m === "in" ? "username" : "off");
+    if (m === "in") zoneCreation.setAttribute("hidden", ""); else zoneCreation.removeAttribute("hidden");
+    msg.textContent = ""; etatPseudo.textContent = "";
+  }
+  bascule.addEventListener("click", () => changerMode(mode === "in" ? "up" : "in"));
+  /* Disponibilité du pseudo : la base répond seulement vrai ou faux. */
+  async function verifierPseudo(valeur) {
+    const v = normPseudo(valeur);
+    if (!v) { etatPseudo.textContent = ""; return null; }
+    if (v.indexOf("@") >= 0) { etatPseudo.textContent = "✗ Choisis un pseudo (pas une adresse e-mail)."; return false; }
+    if (!pseudoValide(v)) { etatPseudo.textContent = "✗ Format non valide : 6 à 20 caractères (lettres, chiffres, - et _)."; return false; }
+    etatPseudo.textContent = "Vérification…"; const n = ++dernier;
+    try { const ok = await Api.rest.rpc("pseudo_disponible", { p: v, p_app: APP_ID }); if (n !== dernier) return null; etatPseudo.textContent = ok === true ? "✓ Pseudo disponible" : "✗ Pseudo déjà pris ou non autorisé"; return ok === true; }
+    catch (e) { if (n === dernier) etatPseudo.textContent = "Vérification impossible (réseau). Réessaie."; return null; }
+  }
+  ident.input.addEventListener("input", () => { if (mode !== "up") return; clearTimeout(minuteur); minuteur = setTimeout(() => verifierPseudo(ident.input.value), 400); });
+  mdp.input.addEventListener("input", () => { if (mode === "up") regles.maj(mdp.input.value); });
+  const form = el("form", { classe: "carte", onsubmit: async (e) => {
+    e.preventDefault(); msg.textContent = ""; btn.disabled = true;
+    const v = normPseudo(ident.input.value), pw = mdp.input.value;
+    try {
+      if (!pseudoValide(v)) throw { texte: "Pseudo non valide : 6 à 20 caractères (lettres, chiffres, - et _)." };
+      if (mode === "up") {
+        if (!evaluerMdp(pw).ok) throw { texte: "Le mot de passe ne respecte pas toutes les règles de la liste." };
+        if (!consent.checked) throw { texte: "Coche la case pour confirmer que tu as compris l’envoi chiffré de tes polices." };
+        const s = await Api.auth.reglages();
+        if (s && s.mailer_autoconfirm === false) throw { texte: "Les comptes à pseudo ne sont pas encore activés sur cette appli. Contacte le responsable de l’appli." };
+        if (await verifierPseudo(v) !== true) throw { texte: "Ce pseudo n’est pas disponible : choisis-en un autre." };
+        if (!await Api.auth.inscrire(v + "@" + DOMAINE_PSEUDO, pw, v)) throw { texte: "Compte créé, mais la connexion automatique n’est pas activée : connecte-toi." };
+      } else {
+        await Api.auth.connecter(v + "@" + DOMAINE_PSEUDO, pw);
+      }
+      motDePasseMemo = pw; Chiffre.memo(pw);
+      await apresConnexion();
+    } catch (err) { afficherMsg(msg, messageErreur(err), false); }
+    btn.disabled = false;
+  } }, [
+    el("h3", { texte: "Se connecter ou créer un compte", style: "margin-top:0" }),
+    el("p", { classe: "discret", texte: "Facultatif. Avec un compte, tes polices sont chiffrées puis retrouvées sur tous tes appareils (ordinateur, téléphone). Sans compte, tout reste sur cet appareil." }),
+    ident.bloc, mdp.bloc, zoneCreation, msg, el("div", { classe: "rang" }, [btn, bascule])
+  ]);
+  return form;
+}
+
+/* Après connexion : ouvre la clé de chiffrement (ou la crée), puis synchronise. */
+async function apresConnexion() {
+  let r;
+  try { r = await Chiffre.init(); }
+  catch (e) { if (e && e.reseau) { Compte.etat = "horsligne"; majStatutSync("Hors connexion."); afficherCompte(); return; } throw e; }
+  if (r === "aucune") {
+    const code = await Chiffre.installer(Chiffre.aMemo() ? await memoPourInstaller() : "");
+    Compte.etat = "ok";
+    Compte.vue = { code: code, titre: "Ton code de récupération", suite: () => { Compte.vue = null; synchroniser(true); afficherCompte(); } };
+  } else if (r === "ok") { Compte.etat = "ok"; synchroniser(); }
+  else { Compte.etat = "verrouille"; }
+  afficherCompte();
+}
+let motDePasseMemo = null;   /* mot de passe saisi à l’instant, gardé en mémoire vive seulement le temps d’ouvrir la clé */
+const memoPourInstaller = async () => motDePasseMemo;
+
+/* ----- Code de récupération : à noter avant de continuer ----- */
+function vueCode() {
+  const code = Compte.vue.code;
+  const coche = el("input", { type: "checkbox", id: "compte-ok" });
+  const verif = el("input", { type: "text", id: "compte-verif", autocomplete: "off", autocapitalize: "characters", spellcheck: "false", maxlength: "9", placeholder: "Ex. : AB12" });
+  const btn = el("button", { classe: "btn", type: "button", texte: "Continuer", disabled: "" });
+  const fin = code.replace(/-/g, "").slice(-4);
+  const maj = () => { btn.disabled = !(coche.checked && Chiffre.normCode(verif.value) === fin); };
+  coche.addEventListener("change", maj); verif.addEventListener("input", maj);
+  btn.addEventListener("click", () => Compte.vue.suite());
+  return el("div", { classe: "carte" }, [
+    el("h3", { texte: "🔐 " + Compte.vue.titre, style: "margin-top:0" }),
+    el("p", { texte: "Tes polices sont chiffrées : seul(e) toi peux les lire. Si tu oublies ton mot de passe, ce code est le seul moyen de les récupérer." }),
+    el("p", { id: "compte-code", texte: code, style: "font-size:1.4em;font-weight:700;letter-spacing:.06em;text-align:center;word-break:break-all" }),
+    el("div", { classe: "rang" }, [
+      el("button", { classe: "btn sec", type: "button", texte: "📋 Copier", onclick: async () => { try { await navigator.clipboard.writeText(code); annoncer("Code copié."); } catch (e) { annoncer("Copie impossible : note le code à la main."); } } }),
+      el("button", { classe: "btn sec", type: "button", texte: "⬇ Télécharger", onclick: () => {
+        const blob = new Blob(["Code de récupération de Pimp My Font\r\n\r\n" + code + "\r\n\r\nGarde ce fichier hors de l’appareil (papier, coffre de mots de passe). Il ouvre tes polices.\r\n"], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = "code-recuperation-pimp-my-font.txt"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } })]),
+    el("p", { classe: "discret", texte: "Garde-le dans un endroit sûr, à part de ton mot de passe. Personne, pas même le responsable du projet, ne peut le retrouver pour toi." }),
+    el("label", { style: "display:block;font-weight:400" }, [coche, " J’ai noté ce code dans un endroit sûr."]),
+    el("label", { for: "compte-verif", texte: "Pour vérifier, recopie les 4 derniers signes du code" }), verif,
+    el("div", { classe: "rang" }, [btn])
+  ]);
+}
+
+/* ----- Clé absente de cet appareil : mot de passe ou code de récupération ----- */
+function vueVerrou() {
+  const msgA = messageZone(), msgB = messageZone();
+  const mdpA = champCompte("verrou-mdp", "Mot de passe", "password", "current-password");
+  const code = champCompte("verrou-code", "Code de récupération", "text", "off", { placeholder: "XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" });
+  const mdpB = Chiffre.aMemo() ? null : champCompte("verrou-mdp-b", "Ton mot de passe actuel (pour le réenregistrer)", "password", "current-password");
+  const btnA = el("button", { classe: "btn", type: "submit", texte: "Ouvrir mes polices" });
+  const btnB = el("button", { classe: "btn sec", type: "submit", texte: "Utiliser mon code de récupération" });
+  const fini = () => { Compte.etat = "ok"; synchroniser(true); afficherCompte(); };
+  const formA = el("form", { onsubmit: async (e) => {
+    e.preventDefault(); btnA.disabled = true; msgA.textContent = "";
+    try { await Chiffre.deverrouillerMdp(mdpA.input.value); fini(); } catch (err) { afficherMsg(msgA, "Ce mot de passe n’ouvre pas tes polices. S’il a été réinitialisé, utilise ton code de récupération.", false); btnA.disabled = false; }
+  } }, [mdpA.bloc, msgA, btnA]);
+  const formB = el("form", { onsubmit: async (e) => {
+    e.preventDefault(); btnB.disabled = true; msgB.textContent = "";
+    try { await Chiffre.deverrouillerCode(code.input.value, motDePasseMemo || (mdpB && mdpB.input.value)); fini(); } catch (err) { afficherMsg(msgB, "Code incorrect. Vérifie chaque signe (les tirets et espaces sont facultatifs).", false); btnB.disabled = false; }
+  } }, [code.bloc, mdpB ? mdpB.bloc : null, msgB, btnB].filter(Boolean));
+  return el("div", { classe: "carte" }, [
+    el("h3", { texte: "🔐 Ouvrir tes polices", style: "margin-top:0" }),
+    el("p", { texte: "Tes polices sont chiffrées. Cet appareil n’a pas encore la clé pour les ouvrir." }),
+    Chiffre.aMemo() ? null : formA,
+    el("h4", { texte: Chiffre.aMemo() ? "Utilise ton code de récupération" : "Mot de passe oublié ou réinitialisé ?" }), formB,
+    el("div", { classe: "rang" }, [el("button", { classe: "btn sec", type: "button", texte: "Se déconnecter", onclick: () => deconnecter(false) })])
+  ].filter(Boolean));
+}
+
+/* ----- Compte connecté : synchronisation, mot de passe, code, déconnexion, suppression ----- */
+function vueConnecte() {
+  const u = Api.user() || {}, pseudo = String(u.email || "").replace("@" + DOMAINE_PSEUDO, "");
+  const zoneMdp = el("div", { hidden: "" }), zoneCode = el("div", { hidden: "" });
+  /* nouveau mot de passe */
+  const m0 = champCompte("cm-actuel", "Mot de passe actuel", "password", "current-password");
+  const m1 = champCompte("cm-nouveau", "Nouveau mot de passe", "password", "new-password");
+  const m2 = champCompte("cm-conf", "Confirmation", "password", "new-password");
+  const regles = reglesMdp(), msgM = messageZone();
+  m1.input.addEventListener("input", () => regles.maj(m1.input.value));
+  zoneMdp.append(el("form", { classe: "carte", onsubmit: async (e) => {
+    e.preventDefault(); msgM.textContent = "";
+    if (!evaluerMdp(m1.input.value).ok) { afficherMsg(msgM, "Le nouveau mot de passe ne respecte pas toutes les règles.", false); return; }
+    if (m1.input.value !== m2.input.value) { afficherMsg(msgM, "Les deux mots de passe sont différents.", false); return; }
+    try {
+      try { await Chiffre.deverrouillerMdp(m0.input.value); } catch (er) { throw { texte: "Le mot de passe actuel est incorrect." }; }
+      await Api.auth.changerMdp(m1.input.value);
+      motDePasseMemo = m1.input.value; Chiffre.memo(motDePasseMemo);
+      await Chiffre.reenfermer(m1.input.value);
+      annoncer("Mot de passe modifié."); zoneMdp.setAttribute("hidden", ""); afficherCompte();
+    } catch (err) { afficherMsg(msgM, messageErreur(err), false); }
+  } }, [m0.bloc, m1.bloc, regles.el, m2.bloc, msgM, el("div", { classe: "rang" }, [el("button", { classe: "btn", type: "submit", texte: "Enregistrer le mot de passe" })])]));
+  /* nouveau code de récupération */
+  const c0 = champCompte("cc-mdp", "Mot de passe actuel", "password", "current-password"), msgC = messageZone();
+  zoneCode.append(el("form", { classe: "carte", onsubmit: async (e) => {
+    e.preventDefault(); msgC.textContent = "";
+    try {
+      await Chiffre.deverrouillerMdp(c0.input.value).catch(() => { throw { texte: "Mot de passe incorrect." }; });
+      const code = await Chiffre.nouveauCodeRecup();
+      Compte.vue = { code: code, titre: "Ton nouveau code", suite: () => { Compte.vue = null; afficherCompte(); } }; afficherCompte();
+    } catch (err) { afficherMsg(msgC, messageErreur(err), false); }
+  } }, [el("p", { classe: "discret", texte: "L’ancien code ne fonctionnera plus. Note le nouveau." }), c0.bloc, msgC, el("div", { classe: "rang" }, [el("button", { classe: "btn", type: "submit", texte: "Créer un nouveau code" })])]));
+  const bascule = (z) => () => { if (z.hasAttribute("hidden")) z.removeAttribute("hidden"); else z.setAttribute("hidden", ""); };
+  return el("div", null, [
+    el("div", { classe: "carte" }, [
+      el("h3", { texte: "Connecté(e) : " + pseudo, style: "margin-top:0" }),
+      el("p", { classe: "discret", texte: "Tes polices sont chiffrées dans ton navigateur puis synchronisées. Elles s’enregistrent toutes seules après chaque modification." }),
+      el("div", { classe: "rang" }, [el("button", { classe: "btn", type: "button", texte: "🔄 Synchroniser maintenant", onclick: () => synchroniser(true) })])
+    ]),
+    el("div", { classe: "carte" }, [
+      el("h3", { texte: "Sécurité du compte", style: "margin-top:0" }),
+      el("div", { classe: "rang" }, [
+        el("button", { classe: "btn sec", type: "button", texte: "🔑 Changer mon mot de passe", onclick: bascule(zoneMdp) }),
+        el("button", { classe: "btn sec", type: "button", texte: "🔁 Nouveau code de récupération", onclick: bascule(zoneCode) })]),
+      zoneMdp, zoneCode
+    ]),
+    el("div", { classe: "carte" }, [
+      el("h3", { texte: "Session et suppression", style: "margin-top:0" }),
+      el("p", { classe: "discret", texte: "Se déconnecter garde tes polices sur cet appareil. Sur un appareil partagé, efface-les aussi : elles restent dans ton compte." }),
+      el("div", { classe: "rang" }, [
+        el("button", { classe: "btn sec", type: "button", texte: "Se déconnecter", onclick: () => deconnecter(false) }),
+        el("button", { classe: "btn sec", type: "button", texte: "Se déconnecter et effacer d’ici mes polices", onclick: () => deconnecter(true) }),
+        el("button", { classe: "btn danger", type: "button", texte: "🗑 Supprimer mon compte", onclick: supprimerCompte })])
+    ])
+  ]);
+}
+
+/* Se déconnecte ; avec « effacer », retire aussi les polices de cet appareil (elles restent dans le compte). */
+async function deconnecter(effacer) {
+  if (effacer && !await confirmer("Effacer les polices de cet appareil ?", "Elles restent dans ton compte et réapparaîtront à ta prochaine connexion. Ce qui n’a pas encore été synchronisé sera perdu : lance d’abord « Synchroniser maintenant ».", "Effacer et se déconnecter")) return;
+  if (!effacer && !Api.uid()) return;
+  if (syncPret()) { try { await synchroniser(); } catch (e) { /* ignoré */ } }
+  clearTimeout(Sync.minuteur);
+  await Api.auth.deconnecter(); await Chiffre.oublier(); motDePasseMemo = null;
+  Compte.etat = "deconnecte"; Compte.vue = null; majStatutSync("");
+  if (effacer) await viderLocal();
+  afficherCompte(); majAccueilCompte(); annoncer("Déconnecté(e)." + (effacer ? " Polices effacées de cet appareil." : ""));
+}
+/* Efface les polices, la corbeille et l’historique de cet appareil (garde le thème et la taille du texte). */
+async function viderLocal() {
+  await Stockage.tout_effacer();
+  etat.projets = []; etat.courant = null; etat.corbeille = []; etat.snaps = [];
+  etat.prefs = Object.assign(prefsDefaut(), { theme: etat.prefs.theme, taille: etat.prefs.taille });
+  await sauverPrefs(); $("#nom-courant").textContent = "";
+}
+/* Suppression du compte : données du serveur, puis compte. Les polices de cet appareil restent. */
+async function supprimerCompte() {
+  const v = await dialogue("Supprimer mon compte", "Supprime définitivement ton compte et toutes tes polices stockées sur le serveur. Les polices de cet appareil restent. Action irréversible. Tape SUPPRIMER pour confirmer.", { champ: true, ok: "Supprimer définitivement" });
+  if (v === null) return;
+  if (v.trim() !== "SUPPRIMER") { annoncer("Confirmation incorrecte : rien n’a été supprimé."); return; }
+  try {
+    await Api.rest.rpc("pmf_effacer_mes_donnees", {}); await Api.rest.rpc("delete_user", {});
+    clearTimeout(Sync.minuteur);
+    await Api.auth.deconnecter(); await Chiffre.oublier(); motDePasseMemo = null;
+    etat.prefs.tombes = {}; await sauverPrefs();
+    Compte.etat = "deconnecte"; Compte.vue = null; majStatutSync(""); afficherCompte(); majAccueilCompte();
+    annoncer("Ton compte a été supprimé. Tes polices restent sur cet appareil.");
+  } catch (e) { annoncer("Échec de la suppression : " + messageErreur(e)); }
+}
+
+/* Ligne d’état sur l’écran « Mes polices » (invite à créer un compte, ou état de la synchro). */
+function majAccueilCompte() {
+  const n = $("#sync-accueil"); if (!n) return;
+  if (!Api.configure()) { n.textContent = ""; return; }
+  n.textContent = Api.uid() ? (Sync.message || (Compte.etat === "verrouille" ? "Compte : saisis ton mot de passe ou ton code pour ouvrir tes polices (onglet Compte)." : "")) : "Astuce : crée un compte (onglet Compte) pour retrouver tes polices sur ton téléphone et ton ordinateur.";
+}
+
+/* Démarrage : restaure la session, ouvre la clé et lance une première synchronisation sans bloquer l’appli. */
+async function initCompte() {
+  if (!Api.configure()) { Compte.etat = "indisponible"; return; }
+  if (!await Api.restaurer()) { Compte.etat = "deconnecte"; return; }
+  try {
+    const r = await Chiffre.init();
+    Compte.etat = r === "ok" ? "ok" : (r === "aucune" ? "verrouille" : "verrouille");
+    if (r === "aucune") { Compte.etat = "deconnecte"; await Api.auth.deconnecter(); await Chiffre.oublier(); return; }   /* session sans clé : on redemande une connexion complète */
+    if (r === "ok") synchroniser();
+  } catch (e) {
+    if (e && e.reseau) { Compte.etat = "horsligne"; majStatutSync("Hors connexion : la synchronisation reprendra au retour du réseau."); }
+    else { Compte.etat = "deconnecte"; await Api.auth.deconnecter(); }   /* session refusée (expirée) */
+  }
+}
+/* Resynchronise quand l’appli redevient visible ou que le réseau revient. */
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (Compte.etat === "horsligne") initCompte().then(() => { majAccueilCompte(); }); else synchroniser(); } });
+window.addEventListener("online", () => { if (Compte.etat === "horsligne") initCompte().then(majAccueilCompte); else synchroniser(); });
+
+const VERSION_APPLI = "0.6.0";
+/* ===== SECTION : Recherche de mises à jour (bouton + contrôle automatique quotidien) ===== */
+const JOUR_MS = 86400000;   /* 24 h */
+let regSW = null;
+/* Montre le bandeau « nouvelle version » quand une version attend d’être activée. */
+function signalerMaj(w) { majSW = w; $("#maj-dispo").hidden = false; }
+function ecrireMajEtat(t) { document.querySelectorAll(".maj-etat").forEach((n) => { n.textContent = t; }); }
+/* Demande au navigateur de relire sw.js ; renvoie « nouvelle », « a-jour », « indispo » ou « horsligne ». */
+async function verifierMaj(manuel) {
+  if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) { if (manuel) ecrireMajEtat("Mises à jour automatiques indisponibles ici (ouvre l’appli depuis son adresse web)."); return "indispo"; }
+  if (manuel) ecrireMajEtat("Recherche en cours…");
+  try {
+    const reg = regSW || await navigator.serviceWorker.getRegistration(); if (!reg) { if (manuel) ecrireMajEtat("Mises à jour indisponibles pour l’instant."); return "indispo"; }
+    await reg.update();
+    etat.prefs.derniereMaj = maintenant(); sauverPrefs();
+    /* une version trouvée s’installe quelques secondes : on attend un peu avant de conclure */
+    for (let i = 0; i < 20 && reg.installing && !reg.waiting; i++) await new Promise((r) => setTimeout(r, 500));
+    if (reg.waiting && navigator.serviceWorker.controller) { signalerMaj(reg.waiting); if (manuel) ecrireMajEtat("Une nouvelle version est prête : touche « Mettre à jour » dans le bandeau en haut."); return "nouvelle"; }
+    if (manuel) ecrireMajEtat("Tu as la dernière version (" + VERSION_APPLI + "). Vérifié le " + dateFr(etat.prefs.derniereMaj) + ".");
+    return "a-jour";
+  } catch (e) { if (manuel) ecrireMajEtat("Recherche impossible (pas de réseau ?). Réessaie plus tard."); return "horsligne"; }
+}
+/* Contrôle automatique : au démarrage, au retour dans l’appli et toutes les heures, mais au plus une fois par jour. */
+function verifierMajSiBesoin() { if (maintenant() - (etat.prefs.derniereMaj || 0) > JOUR_MS) verifierMaj(false); }
+function planifierVerifMaj() {
+  verifierMajSiBesoin();
+  setInterval(verifierMajSiBesoin, 3600000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) verifierMajSiBesoin(); });
+  document.querySelectorAll(".btn-chercher-maj").forEach((b) => b.addEventListener("click", () => verifierMaj(true)));
+  if (etat.prefs.derniereMaj) ecrireMajEtat("Dernière vérification : " + dateFr(etat.prefs.derniereMaj) + " (automatique chaque jour).");
 }
 
 /* ===== SECTION : Démarrage ===== */
@@ -2560,6 +3241,8 @@ async function demarrer() {
   brancherInstall(); enregistrerSW();
   chargerRefs().then(() => { if (editeurOuvert()) redessiner(); });   /* polices de repère : chargées sans bloquer l’appli */
   aller("accueil");
+  initCompte().then(() => { majAccueilCompte(); const e = document.querySelector('[data-ecran="compte"]'); if (e && !e.hidden) afficherCompte(); });
+  planifierVerifMaj();
 }
 demarrer();
 })();

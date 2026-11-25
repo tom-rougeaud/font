@@ -2,6 +2,7 @@
 
 Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées à la main.
 
+- Version 0.6.0 : **compte facultatif et synchronisation** ordinateur ↔ téléphone (pseudo + mot de passe, polices chiffrées de bout en bout dans le navigateur, code de récupération), bouton « Rechercher les mises à jour » et recherche automatique chaque jour, capitales accentuées (À, É, Ô…) mises à l’échelle pour que l’accent reste dans le cadre.
 - Version 0.5.6 : parcours en 4 étapes numérotées (barre de navigation + message d’étape + bouton « étape suivante »), chaque choix d’accueil crée une NOUVELLE police (papier ou numérique), lettres étroites aérées (I, i, l, 1), épaisseur du feutre estimée à l’import papier et reprise par le stylo, écriture attachée détectée.
 - Version 0.5.5 : la lettre fantôme est réduite pour les capitales accentuées et les cédilles, afin de rester dans le carré.
 - Version 0.5.4 : lettre fantôme (Helvetica du PDF, orange très clair, option) dans chaque carré, quadrillage plus dense, points début/fin placés à côté de la lettre fantôme (largeur propre à chaque lettre) ; une fiche vierge ne produit aucune lettre à l’import (testé).
@@ -13,7 +14,7 @@ Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées
 - Version 0.4.0 : habillage rétro 70’s (jaune, orange), logo original, trois modes de tracé (appuyer et glisser, **maintenir Entrée**, sans clic), indicateur « stylo levé / tu traces », correctif du tracé au stylet.
 - Version 0.3.0 : installation sur l’écran d’accueil (manifest, service worker, hors ligne).
 - Version 0.2.0 : atelier avec repères pointillés et lettre fantôme, stabilisation, versions par lettre, lissage, recadrage automatique, export .ttf, historique, corbeille, aperçu.
-- Tout reste sur l’appareil : aucune donnée envoyée, aucun traceur.
+- Sans compte, tout reste sur l’appareil. Avec un compte (facultatif), les polices sont chiffrées dans le navigateur avant l’envoi ; aucun traceur. Fichier `config.js` : adresse du projet Supabase et clé publiable (publique par conception).
 - À venir : alternance des versions dans une seule police.
 
 Conçu par Tom Rougeaud, avec l’aide de l’IA (Claude Sonnet 5.5, Anthropic).
