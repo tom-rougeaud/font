@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Projet : Pimp My Font  ·  Version : 0.5.1 (version papier)  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.5.2 (version papier)  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Paliers 1 à 3 : atelier, versions, historique, corbeille, aperçu, lissage, recadrage auto, export TTF.
@@ -287,7 +287,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
         <li>Utilise un <strong>feutre noir</strong> à pointe moyenne : pas de crayon à papier, ni de stylo bleu, rouge ou clair (ils ne seront pas lus).</li>
         <li>Écris chaque caractère dans son carré, <strong>posé sur la ligne de base</strong> (le trait plein).</li>
         <li>Reste dans le carré. Un trait de taille régulière donne une police plus propre. Le grand caractère à gauche du carré est le modèle à copier.</li>
-        <li>Écriture attachée : les <strong>4 points</strong> sur les bords du carré (début et fin, au niveau de la ligne de base et de la ligne des minuscules) montrent où le trait d’entrée et de sortie doit toucher le bord. Ensuite, dans l’Aperçu, mets l’approche à une valeur négative pour que les lettres se touchent.</li>
+        <li>Écriture attachée : les <strong>4 points</strong> bleus (un peu en retrait des bords du carré, au niveau de la ligne de base et de la ligne des minuscules) montrent où commence et où finit le trait : pars du point de gauche, finis sur le point de droite. Ensuite, dans l’Aperçu, mets l’approche entre −30 et −60 pour que les lettres se touchent.</li>
         <li>Tu peux laisser des cases vides : elles seront ignorées.</li>
       </ul>
     </div>
@@ -481,7 +481,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <section id="ecran-apropos" data-ecran="apropos" hidden>
     <h2 tabindex="-1">À propos</h2>
     <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
-      <p class="discret">Version 0.5.1</p>
+      <p class="discret">Version 0.5.2</p>
       <button class="btn" id="btn-installer">Installer l’appli</button></div>
   </section>
 
@@ -1861,7 +1861,8 @@ const LOGO_PDF = "q 0.722 0.263 0.102 rg 565.00 150.00 m 565.00 224.56 504.56 28
 const FICHE = {
   L: 210, H: 297, cols: 5, lignes: 7, cw: 39, ch: 35,   /* 5 × 7 = 35 cases par page ; case de 39 × 35 mm */
   x0: 7.5, y0: 27,                                      /* coin de la première case */
-  carre: 31, dx: 8, dy: 2.5,                            /* carré d’écriture : 8 mm à gauche sont réservés au grand caractère à copier */
+  carre: 31, dx: 8, dy: 2.5, pt: 7,   /* pt = recul (mm) des 4 points début/fin par rapport aux bords du carré */
+                             /* carré d’écriture : 8 mm à gauche sont réservés au grand caractère à copier */
   lectG: 6, lectD: 4, lectH: 1.75, lectB: 1.75,         /* zone lue autour du carré (mm) : un trait qui dépasse un peu n’est pas coupé */
   marq: 10, centres: [[14, 14], [196, 14], [196, 283], [14, 283]],   /* 4 carrés noirs : haut gauche (avec un point blanc), haut droite, bas droite, bas gauche */
   idx: [[150, 9], [158, 9], [166, 9]], idTaille: 6,     /* 3 cases : numéro de page en binaire (à droite du bandeau) */
@@ -1931,7 +1932,7 @@ function contenuFiche(k, mode) {
     trait(ix + S / 2, iy, ix + S / 2, iy + S);
     o.push("[] 0 d"); trait_c(P.cadre); o.push("1.1 w"); trait(ix, yb, ix + S, yb);   /* ligne de base : trait plein épais */
     rempl_c(P.cadre);                                                                 /* points de départ / d’arrivée (écriture attachée) */
-    [[ix, yb], [ix + S, yb], [ix, yx], [ix + S, yx]].forEach((p) => rond(p[0], p[1], 1.1));
+    [[ix + FICHE.pt, yb], [ix + S - FICHE.pt, yb], [ix + FICHE.pt, yx], [ix + S - FICHE.pt, yx]].forEach((p) => rond(p[0], p[1], 1.1));
     rempl_c(P.texte); texte(cx + 1, cy + 9, c, 18, true);                             /* grand caractère à copier */
     if (LEGENDE_CAR[c]) texte(cx + 1, cy + 13, LEGENDE_CAR[c], 5.5);
   }

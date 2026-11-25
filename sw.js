@@ -1,12 +1,12 @@
 /*
-  Projet : Pimp My Font  ·  Version : 0.5.1  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.5.2  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Service worker : garde l’appli en mémoire pour qu’elle marche sans connexion.
 */
 /* ===== SECTION : Constantes ===== */
 /* Changer ce nom à chaque nouvelle version : sinon les anciens fichiers restent servis. */
-const NOM_CACHE = "pimpmypolice-v0.5.1";
+const NOM_CACHE = "pimpmypolice-v0.5.2";
 const FICHIERS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 
 /* ===== SECTION : Installation : met les fichiers en cache ===== */
