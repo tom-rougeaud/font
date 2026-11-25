@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<!--
+  Projet : Pimp My Police  ·  Version : 0.1.0 (palier 1)  ·  Date : 21/11/2026
+  Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
+  Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
+  Palier 1 : atelier de dessin, versions par lettre, stockage, historique, corbeille, aperçu.
+  À venir : lissage + recadrage auto (P2), export .otf/.ttf (P3), variantes OpenType (P4), PWA (P5).
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#24405f">
+<!-- Politique de sécurité : aucune ressource distante n’est autorisée. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Pimp My Police — fabrique ta propre police</title>
+<style>
+/* ===== SECTION : Variables (palette marine/ardoise, accents sourds, aucun néon) ===== */
+:root{
+  --fond:#f3f1ec; --carte:#ffffff; --encre:#1d2939; --encre2:#4b5a6d;
+  --bouton:#24405f; --bouton-txt:#ffffff; --bord:#cfd4db;
+  --ocre:#a97a2c; --sauge:#4f8068; --terre:#a8573f; --alerte-fond:#fbf0e4;
+  --rayon:14px; --ombre:0 2px 8px rgba(20,30,45,.10);
+}
+:root[data-theme="sombre"]{
+  --fond:#121a25; --carte:#1b2635; --encre:#e8edf3; --encre2:#aab6c5;
+  --bouton:#8db3dc; --bouton-txt:#0f1d2b; --bord:#35465b;
+  --ocre:#d2a95a; --sauge:#8bbfa5; --terre:#d9866c; --alerte-fond:#2b2620;
+}
+/* ===== SECTION : Mise en page générale ===== */
+*{box-sizing:border-box}
+html{font-size:100%}
+body{margin:0;background:var(--fond);color:var(--encre);
+  font-family:"Segoe UI",Arial,sans-serif;line-height:1.45;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.haut{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;padding:.6rem 1rem;background:var(--bouton);color:var(--bouton-txt)}
+.haut h1{font-size:1.2rem;margin:0;flex:1 1 auto}
+.haut .btn{background:transparent;color:var(--bouton-txt);border:1px solid currentColor;min-width:44px}
+.nav{display:flex;flex-wrap:wrap;gap:.35rem;padding:.5rem 1rem;background:var(--carte);border-bottom:1px solid var(--bord)}
+.nav button{flex:1 1 auto}
+main{max-width:980px;margin:0 auto;padding:1rem}
+h2{margin:.2rem 0 .8rem;font-size:1.4rem}
+h3{margin:1.2rem 0 .5rem;font-size:1.1rem}
+.carte{background:var(--carte);border:1px solid var(--bord);border-radius:var(--rayon);padding:1rem;margin-bottom:1rem;box-shadow:var(--ombre)}
+.pied{max-width:980px;margin:0 auto;padding:1rem;color:var(--encre2);font-size:.9rem;text-align:center}
+.pied button{background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;min-height:44px;font:inherit}
+[hidden]{display:none !important}
+/* ===== SECTION : Composants ===== */
+.btn{min-height:44px;padding:.5rem 1rem;border-radius:999px;border:1px solid var(--bouton);
+  background:var(--bouton);color:var(--bouton-txt);font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:transparent;color:var(--encre);border-color:var(--bord)}
+.btn.danger{background:transparent;color:var(--terre);border-color:var(--terre)}
+.btn[aria-pressed="true"],.btn[aria-current="page"]{outline:3px solid var(--ocre);outline-offset:1px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--ocre);outline-offset:2px}
+.rang{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem 0}
+input[type=text],input[type=number],textarea{font:inherit;padding:.5rem .7rem;border:1px solid var(--bord);
+  border-radius:10px;background:var(--carte);color:var(--encre);min-height:44px;max-width:100%}
+textarea{width:100%;min-height:90px}
+label{font-weight:600}
+input[type=range]{min-height:44px;vertical-align:middle}
+.alerte{background:var(--alerte-fond);border-left:5px solid var(--ocre);padding:.7rem 1rem;border-radius:10px;margin:.6rem 0}
+.alerte.erreur{border-left-color:var(--terre)}
+.discret{color:var(--encre2);font-size:.92rem}
+progress{width:100%;height:12px;accent-color:var(--sauge)}
+#toast{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);background:var(--bouton);color:var(--bouton-txt);
+  padding:.7rem 1.2rem;border-radius:999px;box-shadow:var(--ombre);z-index:50;max-width:90vw;text-align:center}
+dialog{border:1px solid var(--bord);border-radius:var(--rayon);background:var(--carte);color:var(--encre);max-width:min(92vw,460px);padding:1.2rem}
+dialog::backdrop{background:rgba(10,18,28,.6)}
+/* ===== SECTION : Accueil ===== */
+.liste-polices{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+/* ===== SECTION : Grille des caractères ===== */
+.grille{display:grid;gap:.5rem;grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
+.cellule{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;min-height:44px;
+  background:var(--carte);border:2px solid var(--bord);border-radius:12px;cursor:pointer;color:var(--encre);font:inherit}
+.cellule canvas{width:64px;height:64px;display:block}
+.cellule .nom{font-size:.8rem;color:var(--encre2)}
+.cellule.fait{border-color:var(--sauge)}
+.cellule .badge{position:absolute;top:2px;right:4px;font-size:.72rem;font-weight:700;color:var(--ocre)}
+.cellule .coche{position:absolute;top:1px;left:4px;font-size:.8rem;color:var(--sauge)}
+/* ===== SECTION : Éditeur ===== */
+.defile{width:min(100%,640px,calc(100dvh - 330px));min-width:min(100%,280px);aspect-ratio:1;overflow:auto;margin:.6rem auto;
+  border:2px solid var(--bord);border-radius:var(--rayon);background:var(--carte)}
+#cv-edit{display:block;touch-action:none;cursor:crosshair}
+#cv-edit.main{touch-action:auto;cursor:grab}
+.versions button{min-width:44px}
+body.en-edition .nav,body.en-edition .pied{display:none}
+/* ===== SECTION : Aperçu, historique ===== */
+#cv-apercu{width:100%;background:var(--carte);border:1px solid var(--bord);border-radius:var(--rayon)}
+.elt{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--bord)}
+.elt img{height:36px;background:#f3f1ec;border-radius:6px}
+.elt .info{flex:1 1 200px}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important;scroll-behavior:auto !important}}
+</style>
+</head>
+<body>
+
+<!-- ===== SECTION : Contenu pédagogique (séparé du moteur) ===== -->
+<script type="application/json" id="contenu-peda">
+{
+  "version": 1,
+  "etapes": [
+    "Crée une nouvelle police sur l’écran « Mes polices ».",
+    "Ouvre l’atelier et touche une lettre pour la dessiner entre les lignes-guides.",
+    "Ajoute d’autres versions de la même lettre (jusqu’à 5) pour un rendu plus vivant.",
+    "Regarde le résultat dans l’onglet « Aperçu » en tapant ton propre texte.",
+    "Exporte ta sauvegarde de temps en temps : elle protège ton travail."
+  ],
+  "glossaire": [
+    { "mot": "Ligne de base", "def": "La ligne sur laquelle les lettres « posent leurs pieds »." },
+    { "mot": "Hauteur des minuscules", "def": "La hauteur d’un « x » : a, c, e, m, n, o… s’arrêtent là." },
+    { "mot": "Hauteur des capitales", "def": "La hauteur des lettres majuscules et des chiffres." },
+    { "mot": "Ascendante", "def": "La partie qui monte au-dessus des minuscules (b, d, h, l…)." },
+    { "mot": "Descendante", "def": "La partie qui descend sous la ligne de base (g, p, q, y…)." },
+    { "mot": "Approche", "def": "L’espace vide laissé à gauche et à droite d’une lettre." },
+    { "mot": "Version", "def": "Un dessin différent de la même lettre, pour que le texte paraisse écrit à la main." },
+    { "mot": "Instantané", "def": "Une photo de ta police à un moment donné. Tu peux y revenir sans rien perdre." }
+  ],
+  "infobulles": {
+    "stylo": "Dessiner avec le stylo, le doigt ou la souris",
+    "gomme": "Effacer un trait entier en le touchant",
+    "main": "Déplacer le dessin quand il est agrandi (zoom)",
+    "annuler": "Annuler le dernier geste (Ctrl+Z)",
+    "retablir": "Rétablir le geste annulé (Ctrl+Y)",
+    "actif": "Décoche pour ne pas utiliser cette version dans la police"
+  },
+  "installation": [
+    "Windows : double-clic sur le fichier de police, puis « Installer ».",
+    "Mac : double-clic sur le fichier, puis « Installer la police ».",
+    "iPhone et iPad : il faut une appli d’installation de polices. À vérifier selon ta version.",
+    "Android : dépend de l’appareil. À vérifier.",
+    "Canva : téléverser la police dans « Kit de marque » (souvent réservé aux comptes payants). À vérifier."
+  ],
+  "confidentialite": [
+    "Tes dessins et tes polices restent sur ton appareil, dans la mémoire du navigateur.",
+    "Rien n’est envoyé à un serveur, rien n’est collecté, aucun traceur n’est utilisé.",
+    "Aucun nom, aucune photo, aucune adresse n’est demandé.",
+    "Le fichier de sauvegarde (JSON) est à toi : garde-le et protège-le toi-même.",
+    "Si tu vides les données du navigateur, ton travail peut disparaître : exporte régulièrement ta sauvegarde."
+  ],
+  "apropos": [
+    "Pimp My Police permet de transformer des lettres dessinées en police de caractères.",
+    "Cette appli a été conçue par Tom Rougeaud, avec l’aide d’une IA (Claude Sonnet 5.5, Anthropic).",
+    "Licence : CC BY-NC 4.0 (partage avec mention de l’auteur, pas d’usage commercial).",
+    "Limites du palier 1 : pas encore de lissage, de recadrage automatique ni d’export de police."
+  ]
+}
+</script>
+
+<div id="live" class="sr" aria-live="polite"></div>
+<div id="toast" hidden></div>
+
+<!-- ===== SECTION : Structure ===== -->
+<header class="haut">
+  <h1>Pimp My Police</h1>
+  <span id="nom-courant" class="discret" style="color:inherit"></span>
+  <button class="btn" id="btn-texte-moins" aria-label="Réduire la taille du texte">A−</button>
+  <button class="btn" id="btn-texte-plus" aria-label="Agrandir la taille du texte">A+</button>
+  <button class="btn" id="btn-theme" aria-label="Changer de thème clair ou sombre">Thème</button>
+</header>
+
+<nav class="nav" aria-label="Navigation principale">
+  <button class="btn sec" data-aller="accueil">Mes polices</button>
+  <button class="btn sec" data-aller="atelier">Atelier</button>
+  <button class="btn sec" data-aller="apercu">Aperçu</button>
+  <button class="btn sec" data-aller="export">Sauvegarde</button>
+  <button class="btn sec" data-aller="histo">Historique</button>
+  <button class="btn sec" data-aller="aide">Aide</button>
+</nav>
+
+<main id="contenu">
+  <div id="avert-stockage" class="alerte erreur" hidden>
+    Le stockage du navigateur n’est pas disponible. Ton travail sera perdu à la fermeture. Exporte ta sauvegarde souvent.
+  </div>
+
+  <!-- Écran : Accueil -->
+  <section id="ecran-accueil" data-ecran="accueil">
+    <h2 tabindex="-1">Mes polices</h2>
+    <div id="rappel-export" class="alerte" hidden>
+      Pense à exporter ta sauvegarde : le navigateur peut vider sa mémoire.
+      <button class="btn sec" data-aller="export">Aller à la sauvegarde</button>
+    </div>
+    <div class="rang"><button class="btn" id="btn-nouvelle">+ Nouvelle police</button></div>
+    <div id="liste-polices" class="liste-polices"></div>
+  </section>
+
+  <!-- Écran : Atelier (grille + éditeur) -->
+  <section id="ecran-atelier" data-ecran="atelier" hidden>
+    <div id="vue-grille">
+      <h2 tabindex="-1">Atelier</h2>
+      <div class="carte">
+        <p id="couverture-txt" style="margin:0 0 .4rem"></p>
+        <progress id="couverture" max="100" value="0" aria-label="Lettres dessinées"></progress>
+      </div>
+      <div id="grille-groupes"></div>
+    </div>
+
+    <div id="vue-editeur" hidden>
+      <div class="rang">
+        <button class="btn sec" id="ed-retour">← Valider et revenir</button>
+        <button class="btn sec" id="ed-prec" aria-label="Caractère précédent">◀</button>
+        <h2 id="ed-titre" style="margin:0" tabindex="-1"></h2>
+        <button class="btn sec" id="ed-suiv" aria-label="Caractère suivant">▶</button>
+      </div>
+      <div class="rang versions" id="ed-versions" role="group" aria-label="Versions de la lettre"></div>
+      <div class="rang">
+        <button class="btn" id="ed-stylo" data-outil="stylo" aria-pressed="true" data-info="stylo">Stylo</button>
+        <button class="btn sec" id="ed-gomme" data-outil="gomme" aria-pressed="false" data-info="gomme">Gomme</button>
+        <button class="btn sec" id="ed-main" data-outil="main" aria-pressed="false" data-info="main">Main</button>
+        <button class="btn sec" id="ed-annuler" data-info="annuler" aria-label="Annuler">↶</button>
+        <button class="btn sec" id="ed-retablir" data-info="retablir" aria-label="Rétablir">↷</button>
+      </div>
+      <div class="defile" id="ed-defile"><canvas id="cv-edit" aria-label="Zone de dessin de la lettre"></canvas></div>
+      <div class="rang">
+        <label for="ed-epais">Épaisseur</label>
+        <input type="range" id="ed-epais" min="6" max="90" value="28">
+        <label><input type="checkbox" id="ed-pression" checked> Pression du stylet</label>
+      </div>
+      <div class="rang">
+        <button class="btn sec" id="ed-zoom-moins" aria-label="Zoom arrière">Zoom −</button>
+        <button class="btn sec" id="ed-zoom-plus" aria-label="Zoom avant">Zoom +</button>
+        <span id="ed-zoom-txt" class="discret">100 %</span>
+      </div>
+      <div class="rang">
+        <label><input type="checkbox" id="ed-actif" data-info="actif"> Version utilisée dans la police</label>
+      </div>
+      <div class="rang">
+        <button class="btn sec" id="ed-ajouter">+ Nouvelle version</button>
+        <button class="btn sec" id="ed-dupliquer">Dupliquer cette version</button>
+        <button class="btn sec" id="ed-effacer">Effacer le dessin</button>
+        <button class="btn danger" id="ed-suppr">Supprimer cette version</button>
+        <button class="btn danger" id="ed-vider">Vider la lettre</button>
+      </div>
+      <p class="discret">Les versions supprimées vont dans la corbeille (30 jours).</p>
+    </div>
+  </section>
+
+  <!-- Écran : Aperçu -->
+  <section id="ecran-apercu" data-ecran="apercu" hidden>
+    <h2 tabindex="-1">Aperçu du texte</h2>
+    <div class="carte">
+      <label for="ap-texte">Ton texte d’essai</label>
+      <textarea id="ap-texte" autocomplete="off" maxlength="2000">Bonjour, voici ma police ! Quelle belle journée.</textarea>
+      <div class="rang">
+        <label for="ap-taille">Taille</label><input type="range" id="ap-taille" min="20" max="140" value="64">
+        <label for="ap-inter">Interligne</label><input type="range" id="ap-inter" min="80" max="220" value="130">
+        <label for="ap-appr">Approche</label><input type="range" id="ap-appr" min="0" max="150" value="40">
+      </div>
+      <div class="rang">
+        <label><input type="checkbox" id="ap-melange" checked> Mélanger les versions</label>
+        <button class="btn sec" id="ap-remelanger">Re-mélanger</button>
+        <label for="ap-graine">Graine</label>
+        <input type="number" id="ap-graine" value="1" min="1" max="99999" autocomplete="off" style="width:7rem">
+      </div>
+    </div>
+    <canvas id="cv-apercu" aria-label="Aperçu du texte avec ta police"></canvas>
+    <p id="ap-manque" class="discret"></p>
+  </section>
+
+  <!-- Écran : Sauvegarde (export / import / effacer) -->
+  <section id="ecran-export" data-ecran="export" hidden>
+    <h2 tabindex="-1">Sauvegarde</h2>
+    <div class="carte">
+      <h3 style="margin-top:0">Ma sauvegarde (fichier JSON)</h3>
+      <p class="discret">Contient toutes tes polices. L’import ajoute des polices : il n’écrase rien.</p>
+      <div class="rang">
+        <button class="btn" id="btn-exporter">Exporter</button>
+        <button class="btn sec" id="btn-importer">Importer</button>
+        <input type="file" id="fic-import" accept="application/json,.json" hidden>
+      </div>
+      <p id="derniere-export" class="discret"></p>
+    </div>
+    <div class="carte">
+      <h3 style="margin-top:0">Export de la police (.otf / .ttf)</h3>
+      <p class="discret">Arrive au palier 3.</p>
+    </div>
+    <div class="carte">
+      <h3 style="margin-top:0">Tout effacer</h3>
+      <p class="discret">Supprime toutes les polices, l’historique et la corbeille de cet appareil. Deux confirmations sont demandées.</p>
+      <button class="btn danger" id="btn-effacer">Effacer toutes mes données</button>
+    </div>
+  </section>
+
+  <!-- Écran : Historique et corbeille -->
+  <section id="ecran-histo" data-ecran="histo" hidden>
+    <h2 tabindex="-1">Historique et corbeille</h2>
+    <div class="carte">
+      <h3 style="margin-top:0">Instantanés de la police ouverte</h3>
+      <div class="rang"><button class="btn" id="btn-snap">Enregistrer un instantané</button></div>
+      <div id="liste-snaps"></div>
+    </div>
+    <div class="carte">
+      <h3 style="margin-top:0">Corbeille (30 jours)</h3>
+      <div class="rang"><button class="btn danger" id="btn-vider-corbeille">Vider la corbeille</button></div>
+      <div id="liste-corbeille"></div>
+    </div>
+  </section>
+
+  <!-- Écran : Aide -->
+  <section id="ecran-aide" data-ecran="aide" hidden>
+    <h2 tabindex="-1">Aide</h2>
+    <div class="carte"><h3 style="margin-top:0">En 5 étapes</h3><ol id="aide-etapes"></ol></div>
+    <div class="carte"><h3 style="margin-top:0">Petit glossaire</h3><dl id="aide-gloss"></dl></div>
+    <div class="carte"><h3 style="margin-top:0">Installer la police (bientôt)</h3><ul id="aide-install"></ul></div>
+  </section>
+
+  <!-- Écran : À propos -->
+  <section id="ecran-apropos" data-ecran="apropos" hidden>
+    <h2 tabindex="-1">À propos</h2>
+    <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
+      <p class="discret">Version 0.1.0 (palier 1)</p></div>
+  </section>
+
+  <!-- Écran : Confidentialité -->
+  <section id="ecran-confid" data-ecran="confid" hidden>
+    <h2 tabindex="-1">Confidentialité</h2>
+    <div class="carte"><ul id="confid-liste"></ul></div>
+  </section>
+</main>
+
+<footer class="pied">
+  <button data-aller="apropos">À propos</button> ·
+  <button data-aller="confid">Confidentialité</button><br>
+  Conçu par Tom Rougeaud · CC BY-NC 4.0
+</footer>
+
+<!-- Boîte de dialogue commune (confirmation / saisie) -->
+<dialog id="dlg" aria-labelledby="dlg-titre">
+  <h3 id="dlg-titre" style="margin-top:0"></h3>
+  <p id="dlg-texte"></p>
+  <input type="text" id="dlg-champ" autocomplete="off" maxlength="60" hidden aria-label="Saisie">
+  <div class="rang" style="justify-content:flex-end">
+    <button class="btn sec" id="dlg-non">Annuler</button>
+    <button class="btn" id="dlg-oui">OK</button>
+  </div>
+</dialog>
+
+<script>
+/* ===== SECTION : Constantes ===== */
+(function () {
+'use strict';
+
+const APP = "pimpmypolice";
+const SCHEMA = 1;                       /* version du format des données sauvegardées */
+const PREFIXE = "pimpmypolice_v1_";     /* préfixe de toutes les clés de stockage */
+const BOITE = 1000;                     /* taille logique de la zone de dessin (unités) */
+const G = { base: 750, caps: 50, xh: 250, asc: 30, desc: 950 }; /* lignes-guides (unités) */
+const MAX_VERSIONS = 5;                 /* versions maximum par caractère */
+const JOURS_CORBEILLE = 30;
+const MAX_SNAPS_RECENTS = 50;           /* instantanés gardés en entier, puis 1 par jour */
+const MAX_TRAITS = 300;                 /* limites de validation d’import */
+const MAX_POINTS_TRAIT = 6000;
+const MAX_FICHIER = 20 * 1024 * 1024;   /* 20 Mo */
+const MAX_POLICES = 50;
+
+/* Jeu de caractères du palier 1 (les accents composés viendront plus tard). */
+const JEU = [
+  { id: "maj", titre: "Majuscules", chars: Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ") },
+  { id: "min", titre: "Minuscules", chars: Array.from("abcdefghijklmnopqrstuvwxyz") },
+  { id: "chi", titre: "Chiffres", chars: Array.from("0123456789") },
+  { id: "pon", titre: "Ponctuation et symboles", chars: Array.from(".,;:!?’'-–()«»\"/&@+=%*#") }
+];
+const CHARS = JEU.reduce((a, g) => a.concat(g.chars), []);
+const CHARS_OK = new Set(CHARS.concat(Array.from("éèêëàâäîïôöùûüçœæÿÉÈÊËÀÂÎÏÔÙÛÜÇŒÆ")));
+const NOMS = { ".": "point", ",": "virgule", ";": "point-virgule", ":": "deux-points", "!": "point d’exclamation",
+  "?": "point d’interrogation", "’": "apostrophe", "'": "apostrophe droite", "-": "trait d’union", "–": "tiret",
+  "(": "parenthèse ouvrante", ")": "parenthèse fermante", "«": "guillemet ouvrant", "»": "guillemet fermant",
+  "\"": "guillemet droit", "/": "barre oblique", "&": "esperluette", "@": "arobase", "+": "plus", "=": "égal",
+  "%": "pourcentage", "*": "astérisque", "#": "dièse" };
+
+/* ===== SECTION : Utilitaires ===== */
+const $ = (s) => document.querySelector(s);
+const nouvelId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const maintenant = () => Date.now();
+
+/* Crée un élément DOM en n’utilisant que textContent (jamais innerHTML). */
+function el(tag, props, enfants) {
+  const n = document.createElement(tag);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (v === undefined || v === null) continue;
+    if (k === "texte") n.textContent = v;
+    else if (k === "classe") n.className = v;
+    else if (k.slice(0, 2) === "on") n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  (enfants || []).forEach((c) => n.append(c));
+  return n;
+}
+function vider(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+function nomCar(c) { return NOMS[c] ? "« " + c + " » (" + NOMS[c] + ")" : "« " + c + " »"; }
+function dateFr(ts) {
+  const d = new Date(ts);
+  const p = (x) => String(x).padStart(2, "0");
+  return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+let minuteurToast = null;
+/* Annonce un message (lecteurs d’écran + bulle visible 3,5 s). */
+function annoncer(msg) {
+  $("#live").textContent = msg;
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(minuteurToast);
+  minuteurToast = setTimeout(() => { t.hidden = true; }, 3500);
+}
+
+/* ===== SECTION : Boîtes de dialogue (confirmation, saisie) ===== */
+function dialogue(titre, texte, opts) {
+  opts = opts || {};
+  return new Promise((resolve) => {
+    const d = $("#dlg"), champ = $("#dlg-champ");
+    $("#dlg-titre").textContent = titre;
+    $("#dlg-texte").textContent = texte || "";
+    champ.hidden = !opts.champ;
+    champ.value = opts.valeur || "";
+    $("#dlg-oui").textContent = opts.ok || "OK";
+    $("#dlg-non").hidden = !!opts.sansAnnuler;
+    let fini = false; /* évite de résoudre deux fois */
+    const fin = (val) => { if (fini) return; fini = true; d.onclose = null; if (d.open) d.close(); resolve(val); };
+    $("#dlg-oui").onclick = () => fin(opts.champ ? champ.value.trim() : true);
+    $("#dlg-non").onclick = () => fin(opts.champ ? null : false);
+    /* Échap : l’évènement close arrive en différé ; si une autre boîte est déjà ouverte, on l’ignore. */
+    d.onclose = () => { if (!d.open) fin(opts.champ ? null : false); };
+    d.showModal();
+    if (opts.champ) { champ.focus(); champ.select(); } else $("#dlg-non").focus();
+  });
+}
+const confirmer = (titre, texte, ok) => dialogue(titre, texte, { ok: ok || "Confirmer" });
+const saisir = (titre, valeur) => dialogue(titre, "", { champ: true, valeur: valeur, ok: "Valider" });
+
+/* ===== SECTION : Stockage (IndexedDB → localStorage → mémoire, tout protégé) ===== */
+const Stockage = {
+  mode: "memoire", db: null, mem: new Map(),
+  init() {
+    return new Promise((res) => {
+      try {
+        if (!window.indexedDB) throw new Error("pas d’IndexedDB");
+        const rq = indexedDB.open(PREFIXE + "db", 1);
+        rq.onupgradeneeded = () => { rq.result.createObjectStore("kv"); };
+        rq.onsuccess = () => { this.db = rq.result; this.mode = "indexeddb"; res(); };
+        rq.onerror = () => { this._repli(); res(); };
+        rq.onblocked = () => { this._repli(); res(); };
+      } catch (e) { this._repli(); res(); }
+    });
+  },
+  /* Repli : localStorage s’il fonctionne, sinon mémoire (perdue à la fermeture). */
+  _repli() {
+    try { localStorage.setItem(PREFIXE + "test", "1"); localStorage.removeItem(PREFIXE + "test"); this.mode = "localstorage"; }
+    catch (e) { this.mode = "memoire"; }
+  },
+  _st(m) { return this.db.transaction("kv", m).objectStore("kv"); },
+  get(k) {
+    return new Promise((res) => {
+      try {
+        if (this.mode === "indexeddb") { const r = this._st("readonly").get(k); r.onsuccess = () => res(r.result === undefined ? null : r.result); r.onerror = () => res(null); }
+        else if (this.mode === "localstorage") { const v = localStorage.getItem(PREFIXE + k); res(v === null ? null : JSON.parse(v)); }
+        else res(this.mem.has(k) ? clone(this.mem.get(k)) : null);
+      } catch (e) { res(null); }
+    });
+  },
+  /* Retourne true si l’écriture a réussi (false : quota dépassé ou stockage bloqué). */
+  set(k, v) {
+    return new Promise((res) => {
+      try {
+        if (this.mode === "indexeddb") { const tx = this.db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false); }
+        else if (this.mode === "localstorage") { localStorage.setItem(PREFIXE + k, JSON.stringify(v)); res(true); }
+        else { this.mem.set(k, clone(v)); res(true); }
+      } catch (e) { res(false); }
+    });
+  },
+  del(k) {
+    return new Promise((res) => {
+      try {
+        if (this.mode === "indexeddb") { const tx = this.db.transaction("kv", "readwrite"); tx.objectStore("kv").delete(k); tx.oncomplete = () => res(true); tx.onerror = tx.onabort = () => res(false); }
+        else if (this.mode === "localstorage") { localStorage.removeItem(PREFIXE + k); res(true); }
+        else { this.mem.delete(k); res(true); }
+      } catch (e) { res(false); }
+    });
+  },
+  keys() {
+    return new Promise((res) => {
+      try {
+        if (this.mode === "indexeddb") { const r = this._st("readonly").getAllKeys(); r.onsuccess = () => res(r.result.map(String)); r.onerror = () => res([]); }
+        else if (this.mode === "localstorage") { const ks = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(PREFIXE) === 0) ks.push(k.slice(PREFIXE.length)); } res(ks); }
+        else res(Array.from(this.mem.keys()));
+      } catch (e) { res([]); }
+    });
+  },
+  async tout_effacer() { const ks = await this.keys(); for (const k of ks) await this.del(k); }
+};
+
+/* ===== SECTION : État de l’appli ===== */
+const etat = {
+  projets: [],        /* toutes les polices, en mémoire */
+  courant: null,      /* police ouverte */
+  corbeille: [],      /* éléments supprimés (30 jours) */
+  snaps: [],          /* index des instantanés (sans les données) */
+  prefs: { theme: "clair", taille: 100, derniereExport: 0, courantId: null },
+  sale: false,        /* modifications non encore photographiées */
+  dernierAuto: 0
+};
+let peda = {};
+let minuteurSauve = null;
+
+/* ===== SECTION : Validation et migration des données ===== */
+/* Migration : traite les anciennes versions du format (rien à migrer au palier 1). */
+function migrer(p) { if (p && !p.schema) p.schema = SCHEMA; return p; }
+
+const nombre = (v, a, b) => typeof v === "number" && isFinite(v) && v >= a && v <= b;
+
+/* Nettoie et contrôle une police ; retourne une copie sûre ou null si invalide. */
+function validerPolice(p) {
+  if (!p || typeof p !== "object" || typeof p.glyphes !== "object" || p.glyphes === null) return null;
+  const sortie = {
+    id: nouvelId(), nom: String(p.nom || "Ma police").slice(0, 60), schema: SCHEMA,
+    cree: nombre(p.cree, 0, 4e12) ? p.cree : maintenant(), modifie: nombre(p.modifie, 0, 4e12) ? p.modifie : maintenant(),
+    glyphes: {}
+  };
+  if (typeof p.id === "string" && /^[a-z0-9]{4,30}$/.test(p.id)) sortie.id = p.id;
+  for (const c of Object.keys(p.glyphes)) {
+    if (!CHARS_OK.has(c)) continue;
+    const g = p.glyphes[c];
+    if (!g || !Array.isArray(g.versions) || g.versions.length > MAX_VERSIONS) return null;
+    const vs = [];
+    for (const v of g.versions) {
+      if (!v || !Array.isArray(v.traits) || v.traits.length > MAX_TRAITS) return null;
+      const traits = [];
+      for (const t of v.traits) {
+        if (!Array.isArray(t) || t.length > MAX_POINTS_TRAIT) return null;
+        const pts = [];
+        for (const pt of t) {
+          if (!Array.isArray(pt) || pt.length < 3 || !nombre(pt[0], -300, 1300) || !nombre(pt[1], -300, 1300) || !nombre(pt[2], 1, 200)) return null;
+          pts.push([pt[0], pt[1], pt[2]]);
+        }
+        traits.push(pts);
+      }
+      vs.push({ id: typeof v.id === "string" ? v.id.slice(0, 30) : nouvelId(), actif: v.actif !== false, traits: traits });
+    }
+    sortie.glyphes[c] = { versions: vs };
+  }
+  return sortie;
+}
+
+/* ===== SECTION : Données des polices ===== */
+const versionVide = () => ({ id: nouvelId(), actif: true, traits: [] });
+function glyphe(p, c, creer) {
+  if (!p.glyphes[c] && creer) p.glyphes[c] = { versions: [] };
+  return p.glyphes[c] || null;
+}
+const versionsUtiles = (g) => (g ? g.versions.filter((v) => v.actif && v.traits.length) : []);
+function nbFaits(p) { return CHARS.filter((c) => versionsUtiles(p.glyphes[c]).length).length; }
+
+async function sauverPolice(p) {
+  p.modifie = maintenant();
+  const ok = await Stockage.set("proj_" + p.id, p);
+  if (!ok) annoncer("Stockage plein ou indisponible. Exporte ta sauvegarde !");
+  return ok;
+}
+function planifierSauvegarde() {
+  etat.sale = true;
+  clearTimeout(minuteurSauve);
+  minuteurSauve = setTimeout(() => { if (etat.courant) sauverPolice(etat.courant); }, 400);
+}
+async function sauverPrefs() { await Stockage.set("prefs", etat.prefs); }
+async function sauverCorbeille() { await Stockage.set("corbeille", etat.corbeille); }
+
+async function creerPolice(nom) {
+  const p = { id: nouvelId(), nom: nom, schema: SCHEMA, cree: maintenant(), modifie: maintenant(), glyphes: {} };
+  etat.projets.push(p);
+  await sauverPolice(p);
+  return p;
+}
+async function ouvrirPolice(p) {
+  etat.courant = p; etat.prefs.courantId = p.id; await sauverPrefs();
+  $("#nom-courant").textContent = "· " + p.nom;
+}
+
+/* ===== SECTION : Dessin (rendu des traits) ===== */
+function couleurs() {
+  const s = getComputedStyle(document.documentElement), v = (n) => s.getPropertyValue(n).trim();
+  return { encre: v("--encre"), ocre: v("--ocre"), sauge: v("--sauge"), terre: v("--terre"), bord: v("--bord"), encre2: v("--encre2") };
+}
+
+/* Dessine des traits (tableaux de points [x, y, épaisseur]) à l’échelle ech, décalés de (ox, oy). */
+function dessinerTraits(ctx, traits, ech, ox, oy, couleur) {
+  ctx.strokeStyle = couleur; ctx.fillStyle = couleur; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for (const t of traits) {
+    if (!t.length) continue;
+    if (t.length === 1) { ctx.beginPath(); ctx.arc(ox + t[0][0] * ech, oy + t[0][1] * ech, Math.max(0.5, t[0][2] * ech / 2), 0, Math.PI * 2); ctx.fill(); continue; }
+    for (let i = 1; i < t.length; i++) {
+      const a = t[i - 1], b = t[i];
+      ctx.lineWidth = Math.max(0.5, (a[2] + b[2]) / 2 * ech);
+      ctx.beginPath(); ctx.moveTo(ox + a[0] * ech, oy + a[1] * ech); ctx.lineTo(ox + b[0] * ech, oy + b[1] * ech); ctx.stroke();
+    }
+  }
+}
+/* Boîte englobante de l’encre (épaisseur comprise) ; null si le dessin est vide. */
+function mesureEncre(traits) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const t of traits) for (const p of t) {
+    const r = p[2] / 2;
+    x0 = Math.min(x0, p[0] - r); x1 = Math.max(x1, p[0] + r); y0 = Math.min(y0, p[1] - r); y1 = Math.max(y1, p[1] + r);
+  }
+  return x0 === Infinity ? null : { x0: x0, x1: x1, y0: y0, y1: y1 };
+}
+function canvasTaille(cv, cssPx) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2); /* plafonné à 2 : reste fluide sur vieux appareils */
+  cv.style.width = cssPx + "px"; cv.style.height = cssPx + "px";
+  cv.width = Math.round(cssPx * dpr); cv.height = Math.round(cssPx * dpr);
+  return cv.width / BOITE;
+}
+/* Miniature (PNG en base64) des premières lettres faites : pour l’historique. */
+function miniature(p) {
+  try {
+    const cv = document.createElement("canvas"); cv.width = 240; cv.height = 48;
+    const ctx = cv.getContext("2d"); ctx.fillStyle = "#f3f1ec"; ctx.fillRect(0, 0, 240, 48);
+    const cs = CHARS.filter((c) => versionsUtiles(p.glyphes[c]).length).slice(0, 6);
+    cs.forEach((c, i) => dessinerTraits(ctx, versionsUtiles(p.glyphes[c])[0].traits, 44 / BOITE, 4 + i * 39, 2, "#1d2939"));
+    return cv.toDataURL("image/png");
+  } catch (e) { return ""; }
+}
+
+/* ===== SECTION : Grille des caractères ===== */
+function construireGrille() {
+  const zone = $("#grille-groupes"); vider(zone);
+  JEU.forEach((groupe) => {
+    zone.append(el("h3", { texte: groupe.titre }));
+    const gr = el("div", { classe: "grille", role: "group", "aria-label": groupe.titre });
+    groupe.chars.forEach((c) => {
+      const cv = el("canvas", { "aria-hidden": "true" });
+      const b = el("button", { classe: "cellule", "data-car": c, type: "button" }, [cv, el("span", { classe: "nom", texte: c })]);
+      b.addEventListener("click", () => ouvrirEditeur(c));
+      gr.append(b);
+    });
+    zone.append(gr);
+  });
+  CHARS.forEach(majCellule);
+  majCouverture();
+}
+function majCellule(c) {
+  const b = document.querySelector('.cellule[data-car="' + (c === '"' ? '\\"' : c) + '"]');
+  if (!b || !etat.courant) return;
+  const cv = b.querySelector("canvas"), ech = canvasTaille(cv, 64), ctx = cv.getContext("2d"), col = couleurs();
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = col.bord; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, G.base * ech); ctx.lineTo(cv.width, G.base * ech); ctx.stroke();
+  const g = glyphe(etat.courant, c, false), vs = versionsUtiles(g);
+  if (vs.length) dessinerTraits(ctx, vs[0].traits, ech, 0, 0, col.encre);
+  b.classList.toggle("fait", vs.length > 0);
+  b.querySelectorAll(".badge,.coche").forEach((n) => n.remove());
+  if (vs.length) { b.append(el("span", { classe: "coche", texte: "✓", "aria-hidden": "true" })); }
+  if (vs.length > 1) b.append(el("span", { classe: "badge", texte: "×" + vs.length, "aria-hidden": "true" }));
+  b.setAttribute("aria-label", "Caractère " + nomCar(c) + ", " + (vs.length ? vs.length + " version(s)" : "à dessiner"));
+}
+function majCouverture() {
+  if (!etat.courant) return;
+  const n = nbFaits(etat.courant);
+  $("#couverture-txt").textContent = n + " caractère(s) dessiné(s) sur " + CHARS.length;
+  $("#couverture").value = Math.round(n / CHARS.length * 100);
+}
+
+/* ===== SECTION : Éditeur de lettre ===== */
+const ed = { car: null, vi: 0, outil: "stylo", epais: 28, pression: true, undo: [], redo: [], zoom: 1,
+  actif: false, ptr: null, cur: null, gommeUndo: false, sale: false };
+const NIVEAUX_ZOOM = [1, 1.5, 2, 3];
+const cvEdit = () => $("#cv-edit");
+const verCourante = () => glyphe(etat.courant, ed.car, true).versions[ed.vi];
+
+function ouvrirEditeur(c) {
+  ed.car = c; ed.undo = []; ed.redo = []; ed.sale = false; ed.zoom = 1;
+  const g = glyphe(etat.courant, c, true);
+  if (!g.versions.length) g.versions.push(versionVide());
+  ed.vi = 0;
+  $("#vue-grille").hidden = true; $("#vue-editeur").hidden = false;
+  document.body.classList.add("en-edition");
+  majBarreEditeur(); ajusterCanvas();
+  $("#ed-titre").focus();
+}
+function majBarreEditeur() {
+  const g = glyphe(etat.courant, ed.car, true);
+  $("#ed-titre").textContent = "Lettre " + nomCar(ed.car);
+  const zone = $("#ed-versions"); vider(zone);
+  g.versions.forEach((v, i) => {
+    zone.append(el("button", { classe: "btn " + (i === ed.vi ? "" : "sec"), type: "button", "aria-pressed": String(i === ed.vi),
+      texte: "V" + (i + 1) + (v.actif ? "" : " (off)"), onclick: () => { ed.vi = i; ed.undo = []; ed.redo = []; majBarreEditeur(); redessiner(); } }));
+  });
+  $("#ed-actif").checked = verCourante().actif;
+  $("#ed-ajouter").disabled = g.versions.length >= MAX_VERSIONS;
+  $("#ed-dupliquer").disabled = g.versions.length >= MAX_VERSIONS;
+  $("#ed-zoom-txt").textContent = Math.round(ed.zoom * 100) + " %";
+}
+function ajusterCanvas() {
+  const defile = $("#ed-defile"), base = defile.clientWidth || 320;
+  ed.ech = canvasTaille(cvEdit(), base * ed.zoom);
+  redessiner();
+}
+function redessiner() {
+  if (!ed.car || $("#vue-editeur").hidden) return;
+  const cv = cvEdit(), ctx = cv.getContext("2d"), col = couleurs(), s = ed.ech;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  /* lignes-guides : trait + libellé (l’info ne repose pas sur la couleur seule) */
+  const guides = [["ascendante", G.asc, col.encre2, [3, 8]], ["capitales", G.caps, col.sauge, [14, 8]],
+    ["minuscules", G.xh, col.sauge, [14, 8]], ["ligne de base", G.base, col.ocre, []], ["descendante", G.desc, col.terre, [3, 8]]];
+  ctx.font = Math.round(20 * s) + "px Segoe UI, Arial, sans-serif"; ctx.textBaseline = "bottom";
+  guides.forEach((g) => {
+    ctx.strokeStyle = g[2]; ctx.fillStyle = g[2]; ctx.lineWidth = Math.max(1, 2 * s);
+    ctx.setLineDash(g[3].map((x) => x * s));
+    ctx.beginPath(); ctx.moveTo(0, g[1] * s); ctx.lineTo(cv.width, g[1] * s); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillText(g[0], 8 * s, g[1] * s - 3 * s);
+  });
+  dessinerTraits(ctx, verCourante().traits, s, 0, 0, col.encre);
+}
+function pushUndo() { ed.undo.push(clone(verCourante().traits)); if (ed.undo.length > 50) ed.undo.shift(); ed.redo = []; }
+function annulerEd() { if (!ed.undo.length) return; ed.redo.push(clone(verCourante().traits)); verCourante().traits = ed.undo.pop(); modifie(); redessiner(); }
+function retablirEd() { if (!ed.redo.length) return; ed.undo.push(clone(verCourante().traits)); verCourante().traits = ed.redo.pop(); modifie(); redessiner(); }
+function modifie() { ed.sale = true; planifierSauvegarde(); }
+
+/* Convertit un événement pointeur en point [x, y, épaisseur] dans la boîte logique. */
+function pointEv(e) {
+  const r = cvEdit().getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * BOITE, y = (e.clientY - r.top) / r.height * BOITE;
+  let w = ed.epais;
+  if (ed.pression && e.pointerType === "pen" && e.pressure > 0) w = ed.epais * (0.4 + 1.2 * e.pressure);
+  return [Math.round(x * 10) / 10, Math.round(y * 10) / 10, Math.round(w * 10) / 10];
+}
+/* Distance d’un point à un segment (pour la gomme). */
+function distSeg(px, py, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+  let t = l2 ? ((px - a[0]) * dx + (py - a[1]) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy));
+}
+/* Gomme : supprime tout trait touché. */
+function gommer(p) {
+  const traits = verCourante().traits, R = 24;
+  for (let i = traits.length - 1; i >= 0; i--) {
+    const t = traits[i]; let touche = false;
+    for (let j = 0; j < t.length && !touche; j++) {
+      const d = t.length === 1 ? Math.hypot(p[0] - t[0][0], p[1] - t[0][1]) : (j ? distSeg(p[0], p[1], t[j - 1], t[j]) : 1e9);
+      if (d < R + t[j][2] / 2) touche = true;
+    }
+    if (touche) { if (!ed.gommeUndo) { ed.undo.push(clone(traits)); ed.redo = []; ed.gommeUndo = true; } traits.splice(i, 1); }
+  }
+}
+function brancherDessin() {
+  const cv = cvEdit();
+  cv.addEventListener("pointerdown", (e) => {
+    if (ed.outil === "main" || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    ed.actif = true; ed.ptr = e.pointerId; ed.gommeUndo = false;
+    const p = pointEv(e);
+    if (ed.outil === "stylo") { pushUndo(); ed.cur = [p]; verCourante().traits.push(ed.cur); } else gommer(p);
+    redessiner();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!ed.actif || e.pointerId !== ed.ptr) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    (evs.length ? evs : [e]).forEach((ev) => {
+      const p = pointEv(ev);
+      if (ed.outil === "stylo") {
+        const d = ed.cur[ed.cur.length - 1];
+        if (Math.hypot(p[0] - d[0], p[1] - d[1]) >= 1.5 && ed.cur.length < MAX_POINTS_TRAIT) ed.cur.push(p);
+      } else gommer(p);
+    });
+    redessiner();
+  });
+  const fin = (e) => {
+    if (!ed.actif || e.pointerId !== ed.ptr) return;
+    ed.actif = false; ed.cur = null; modifie(); redessiner();
+  };
+  cv.addEventListener("pointerup", fin); cv.addEventListener("pointercancel", fin);
+  window.addEventListener("resize", () => { if (!$("#vue-editeur").hidden) ajusterCanvas(); });
+  document.addEventListener("keydown", (e) => {
+    if ($("#vue-editeur").hidden || $("#ecran-atelier").hidden) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? retablirEd() : annulerEd(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); retablirEd(); }
+  });
+}
+function choisirOutil(o) {
+  ed.outil = o;
+  document.querySelectorAll("[data-outil]").forEach((b) => { const on = b.dataset.outil === o; b.setAttribute("aria-pressed", String(on)); b.classList.toggle("sec", !on); });
+  cvEdit().classList.toggle("main", o === "main");
+}
+function changerZoom(sens) {
+  let i = NIVEAUX_ZOOM.indexOf(ed.zoom); i = Math.max(0, Math.min(NIVEAUX_ZOOM.length - 1, i + sens));
+  ed.zoom = NIVEAUX_ZOOM[i]; $("#ed-zoom-txt").textContent = Math.round(ed.zoom * 100) + " %"; ajusterCanvas();
+}
+/* Quitte l’éditeur : retire les versions vides, sauvegarde, photographie si besoin. */
+async function sortirEditeur(valider) {
+  const g = glyphe(etat.courant, ed.car, true);
+  g.versions = g.versions.filter((v) => v.traits.length);
+  if (!g.versions.length) delete etat.courant.glyphes[ed.car];
+  clearTimeout(minuteurSauve);
+  await sauverPolice(etat.courant);
+  if (valider && ed.sale && maintenant() - etat.dernierAuto > 30000) await creerInstantane(etat.courant, "auto", "");
+  const c = ed.car; ed.car = null;
+  $("#vue-editeur").hidden = true; $("#vue-grille").hidden = false;
+  document.body.classList.remove("en-edition");
+  majCellule(c); majCouverture();
+}
+async function allerCar(sens) {
+  const i = CHARS.indexOf(ed.car), n = CHARS[(i + sens + CHARS.length) % CHARS.length];
+  await sortirEditeur(true); ouvrirEditeur(n);
+}
+async function mettreCorbeille(item) {
+  item.id = nouvelId(); item.ts = maintenant(); item.projId = etat.courant.id; item.projNom = etat.courant.nom;
+  etat.corbeille.push(item); await sauverCorbeille();
+}
+function brancherEditeur() {
+  brancherDessin();
+  document.querySelectorAll("[data-outil]").forEach((b) => b.addEventListener("click", () => choisirOutil(b.dataset.outil)));
+  $("#ed-epais").addEventListener("input", (e) => { ed.epais = Number(e.target.value); });
+  $("#ed-pression").addEventListener("change", (e) => { ed.pression = e.target.checked; });
+  $("#ed-annuler").addEventListener("click", annulerEd);
+  $("#ed-retablir").addEventListener("click", retablirEd);
+  $("#ed-zoom-plus").addEventListener("click", () => changerZoom(1));
+  $("#ed-zoom-moins").addEventListener("click", () => changerZoom(-1));
+  $("#ed-retour").addEventListener("click", () => sortirEditeur(true));
+  $("#ed-prec").addEventListener("click", () => allerCar(-1));
+  $("#ed-suiv").addEventListener("click", () => allerCar(1));
+  $("#ed-actif").addEventListener("change", (e) => { verCourante().actif = e.target.checked; modifie(); majBarreEditeur(); });
+  $("#ed-ajouter").addEventListener("click", () => {
+    const g = glyphe(etat.courant, ed.car, true); if (g.versions.length >= MAX_VERSIONS) return;
+    g.versions.push(versionVide()); ed.vi = g.versions.length - 1; ed.undo = []; ed.redo = []; modifie(); majBarreEditeur(); redessiner();
+  });
+  $("#ed-dupliquer").addEventListener("click", () => {
+    const g = glyphe(etat.courant, ed.car, true); if (g.versions.length >= MAX_VERSIONS) return;
+    const v = clone(verCourante()); v.id = nouvelId(); g.versions.push(v); ed.vi = g.versions.length - 1; ed.undo = []; ed.redo = [];
+    modifie(); majBarreEditeur(); redessiner();
+  });
+  $("#ed-effacer").addEventListener("click", () => { if (!verCourante().traits.length) return; pushUndo(); verCourante().traits = []; modifie(); redessiner(); annoncer("Dessin effacé. Tu peux annuler."); });
+  $("#ed-suppr").addEventListener("click", async () => {
+    if (!await confirmer("Supprimer cette version ?", "Elle ira dans la corbeille pendant " + JOURS_CORBEILLE + " jours.", "Supprimer")) return;
+    const g = glyphe(etat.courant, ed.car, true), v = g.versions[ed.vi];
+    if (v.traits.length) await mettreCorbeille({ type: "version", car: ed.car, data: clone(v) });
+    g.versions.splice(ed.vi, 1); if (!g.versions.length) g.versions.push(versionVide());
+    ed.vi = Math.min(ed.vi, g.versions.length - 1); ed.undo = []; ed.redo = []; modifie(); majBarreEditeur(); redessiner();
+    annoncer("Version mise à la corbeille.");
+  });
+  $("#ed-vider").addEventListener("click", async () => {
+    const g = glyphe(etat.courant, ed.car, true);
+    if (!g.versions.some((v) => v.traits.length)) return;
+    if (!await confirmer("Vider toute la lettre ?", "Toutes ses versions iront dans la corbeille.", "Vider")) return;
+    await mettreCorbeille({ type: "glyphe", car: ed.car, data: clone(g) });
+    g.versions = [versionVide()]; ed.vi = 0; ed.undo = []; ed.redo = []; modifie(); majBarreEditeur(); redessiner();
+    annoncer("Lettre mise à la corbeille.");
+  });
+}
+
+/* ===== SECTION : Aperçu du texte ===== */
+/* Générateur pseudo-aléatoire à graine (mulberry32) : même graine = même mélange. */
+function alea(graine) {
+  let a = graine >>> 0;
+  return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function dessinerApercu() {
+  if (!etat.courant) return;
+  const texte = $("#ap-texte").value, taille = Number($("#ap-taille").value), inter = Number($("#ap-inter").value) / 100;
+  const appr = Number($("#ap-appr").value), melange = $("#ap-melange").checked, rnd = alea(Number($("#ap-graine").value) || 1);
+  const cv = $("#cv-apercu"), largeur = Math.max(280, cv.parentElement.clientWidth - 2), ech = taille / BOITE;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), dernier = {}, manque = new Set();
+  /* 1) choix des versions et mesure de chaque glyphe */
+  const jetons = Array.from(texte).map((c) => {
+    if (c === "\n") return { nl: true };
+    if (c === " ") return { esp: true, adv: 350 * ech };
+    const vs = versionsUtiles(glyphe(etat.courant, c, false));
+    if (!vs.length) { manque.add(c); return { vide: true, adv: 400 * ech }; }
+    let i = 0;
+    if (melange && vs.length > 1) { do { i = Math.floor(rnd() * vs.length); } while (i === dernier[c]); }
+    dernier[c] = i;
+    const v = vs[i], m = mesureEncre(v.traits);
+    return { traits: v.traits, m: m, adv: (m.x1 - m.x0 + 2 * appr) * ech, dx: (appr - m.x0) * ech };
+  });
+  /* 2) mise en lignes (retour à la ligne entre les mots) */
+  const lignes = [[]]; let x = 0, mot = [], motL = 0;
+  const poserMot = () => { if (x + motL > largeur - 10 && x > 0) { lignes.push([]); x = 0; } mot.forEach((j) => { j.x = x; lignes[lignes.length - 1].push(j); x += j.adv; }); mot = []; motL = 0; };
+  jetons.forEach((j) => {
+    if (j.nl) { poserMot(); lignes.push([]); x = 0; }
+    else if (j.esp) { poserMot(); j.x = x; lignes[lignes.length - 1].push(j); x += j.adv; }
+    else { mot.push(j); motL += j.adv; }
+  });
+  poserMot();
+  const hLigne = taille * inter, haut = Math.max(taille * 1.2, lignes.length * hLigne + taille * 0.4);
+  cv.style.width = largeur + "px"; cv.style.height = haut + "px"; cv.width = Math.round(largeur * dpr); cv.height = Math.round(haut * dpr);
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, largeur, haut);
+  const col = couleurs();
+  lignes.forEach((l, i) => {
+    /* la ligne de base du dessin (y = 750) est posée sur la ligne du texte */
+    const oy = i * hLigne + (hLigne - taille) / 2 + taille * 0.05; /* décalage vertical de la ligne i */
+    l.forEach((j) => { if (j.traits) dessinerTraits(ctx, j.traits, ech, j.x + j.dx + 5, oy, col.encre); });
+  });
+  $("#ap-manque").textContent = manque.size ? "Lettres pas encore dessinées : " + Array.from(manque).join(" ") : "";
+}
+
+/* ===== SECTION : Accueil (liste des polices) ===== */
+async function afficherAccueil() {
+  const zone = $("#liste-polices"); vider(zone);
+  if (!etat.projets.length) zone.append(el("p", { classe: "carte", texte: "Aucune police pour l’instant. Touche « Nouvelle police » pour commencer." }));
+  etat.projets.forEach((p) => {
+    const n = nbFaits(p);
+    const carte = el("div", { classe: "carte" }, [
+      el("h3", { texte: p.nom, style: "margin-top:0" }),
+      el("p", { classe: "discret", texte: n + " / " + CHARS.length + " caractères · modifiée le " + dateFr(p.modifie) }),
+      el("progress", { max: "100", value: String(Math.round(n / CHARS.length * 100)), "aria-label": "Avancement de " + p.nom }),
+      el("div", { classe: "rang" }, [
+        el("button", { classe: "btn", type: "button", texte: p.id === (etat.courant && etat.courant.id) ? "Atelier" : "Ouvrir", onclick: async () => { await ouvrirPolice(p); aller("atelier"); } }),
+        el("button", { classe: "btn sec", type: "button", texte: "Dupliquer", onclick: async () => { const c = validerPolice(clone(p)); c.id = nouvelId(); c.nom = p.nom + " (copie)"; c.cree = c.modifie = maintenant(); etat.projets.push(c); await sauverPolice(c); afficherAccueil(); annoncer("Police dupliquée."); } }),
+        el("button", { classe: "btn sec", type: "button", texte: "Renommer", onclick: async () => { const v = await saisir("Nouveau nom de la police", p.nom); if (v) { p.nom = v.slice(0, 60); await sauverPolice(p); if (etat.courant === p) $("#nom-courant").textContent = "· " + p.nom; afficherAccueil(); } } }),
+        el("button", { classe: "btn danger", type: "button", texte: "Supprimer", onclick: async () => {
+          if (!await confirmer("Supprimer « " + p.nom + " » ?", "Elle ira dans la corbeille pendant " + JOURS_CORBEILLE + " jours.", "Supprimer")) return;
+          etat.corbeille.push({ id: nouvelId(), ts: maintenant(), type: "police", projId: p.id, projNom: p.nom, car: "", data: clone(p) });
+          await sauverCorbeille(); await Stockage.del("proj_" + p.id);
+          etat.projets = etat.projets.filter((x) => x !== p);
+          if (etat.courant === p) { etat.courant = null; etat.prefs.courantId = null; $("#nom-courant").textContent = ""; await sauverPrefs(); }
+          afficherAccueil(); annoncer("Police mise à la corbeille.");
+        } })
+      ])
+    ]);
+    zone.append(carte);
+  });
+  /* rappel d’export : jamais exporté, ou plus de 7 jours, et du travail à protéger */
+  const travail = etat.projets.some((p) => nbFaits(p) > 0);
+  $("#rappel-export").hidden = !(travail && maintenant() - etat.prefs.derniereExport > 7 * 86400000);
+}
+
+/* ===== SECTION : Historique (instantanés) et corbeille ===== */
+async function creerInstantane(p, type, nom) {
+  const meta = { id: nouvelId(), projId: p.id, projNom: p.nom, ts: maintenant(), type: type, nom: nom || "", thumb: miniature(p), nb: nbFaits(p) };
+  const ok = await Stockage.set("snapdata_" + meta.id, clone(p));
+  if (!ok) { annoncer("Instantané impossible : stockage plein."); return false; }
+  etat.snaps.push(meta);
+  if (type === "auto") { etat.dernierAuto = meta.ts; }
+  etat.sale = false;
+  await elaguerInstantanes(p.id);
+  await Stockage.set("snapidx", etat.snaps);
+  return true;
+}
+/* Garde les 50 plus récents ; au-delà, 1 instantané automatique par jour ; les manuels sont toujours gardés. */
+async function elaguerInstantanes(projId) {
+  const liste = etat.snaps.filter((s) => s.projId === projId).sort((a, b) => b.ts - a.ts);
+  const vus = new Set(), aSupprimer = [];
+  liste.slice(MAX_SNAPS_RECENTS).forEach((s) => {
+    if (s.type === "manuel") return;
+    const jour = new Date(s.ts).toDateString();
+    if (vus.has(jour)) aSupprimer.push(s); else vus.add(jour);
+  });
+  for (const s of aSupprimer) await Stockage.del("snapdata_" + s.id);
+  const ids = new Set(aSupprimer.map((s) => s.id));
+  etat.snaps = etat.snaps.filter((s) => !ids.has(s.id));
+}
+async function afficherHistorique() {
+  const ls = $("#liste-snaps"); vider(ls);
+  $("#btn-snap").disabled = !etat.courant;
+  if (!etat.courant) ls.append(el("p", { classe: "discret", texte: "Ouvre d’abord une police pour voir son historique." }));
+  else {
+    const liste = etat.snaps.filter((s) => s.projId === etat.courant.id).sort((a, b) => b.ts - a.ts);
+    if (!liste.length) ls.append(el("p", { classe: "discret", texte: "Aucun instantané pour l’instant." }));
+    liste.forEach((s) => ls.append(el("div", { classe: "elt" }, [
+      s.thumb ? el("img", { src: s.thumb, alt: "Miniature de l’instantané" }) : el("span"),
+      el("div", { classe: "info", texte: dateFr(s.ts) + " · " + (s.type === "manuel" ? "manuel" : "automatique") + (s.nom ? " · " + s.nom : "") + " · " + s.nb + " caractère(s)" }),
+      el("button", { classe: "btn sec", type: "button", texte: "Restaurer (en copie)", onclick: async () => {
+        const d = await Stockage.get("snapdata_" + s.id), c = validerPolice(d);
+        if (!c) { annoncer("Cet instantané est illisible."); return; }
+        c.id = nouvelId(); c.nom = s.projNom + " (restauré " + dateFr(s.ts) + ")"; c.cree = c.modifie = maintenant();
+        etat.projets.push(c); await sauverPolice(c); annoncer("Copie créée dans « Mes polices ». Rien n’est écrasé.");
+      } }),
+      el("button", { classe: "btn danger", type: "button", texte: "Supprimer", onclick: async () => {
+        if (!await confirmer("Supprimer cet instantané ?", "Cette action est définitive.", "Supprimer")) return;
+        await Stockage.del("snapdata_" + s.id); etat.snaps = etat.snaps.filter((x) => x.id !== s.id); await Stockage.set("snapidx", etat.snaps); afficherHistorique();
+      } })
+    ])));
+  }
+  const lc = $("#liste-corbeille"); vider(lc);
+  if (!etat.corbeille.length) lc.append(el("p", { classe: "discret", texte: "La corbeille est vide." }));
+  etat.corbeille.slice().sort((a, b) => b.ts - a.ts).forEach((it) => {
+    const reste = Math.max(0, Math.ceil(JOURS_CORBEILLE - (maintenant() - it.ts) / 86400000));
+    const quoi = it.type === "police" ? "Police « " + it.projNom + " »" : (it.type === "glyphe" ? "Lettre " : "Version de la lettre ") + nomCar(it.car) + " · police « " + it.projNom + " »";
+    lc.append(el("div", { classe: "elt" }, [
+      el("div", { classe: "info", texte: quoi + " · supprimé le " + dateFr(it.ts) + " · reste " + reste + " jour(s)" }),
+      el("button", { classe: "btn sec", type: "button", texte: "Restaurer", onclick: () => restaurerCorbeille(it) })
+    ]));
+  });
+  $("#btn-vider-corbeille").disabled = !etat.corbeille.length;
+}
+async function restaurerCorbeille(it) {
+  if (it.type === "police") {
+    const c = validerPolice(it.data); if (!c) { annoncer("Élément illisible."); return; }
+    if (etat.projets.some((p) => p.id === c.id)) c.id = nouvelId();
+    etat.projets.push(c); await sauverPolice(c);
+  } else {
+    const p = etat.projets.find((x) => x.id === it.projId);
+    if (!p) { annoncer("La police d’origine n’existe plus. Restaure-la d’abord."); return; }
+    const g = glyphe(p, it.car, true);
+    const vers = it.type === "glyphe" ? it.data.versions : [it.data];
+    const libre = MAX_VERSIONS - g.versions.length;
+    if (libre < vers.length) { annoncer("Pas assez de place : " + nomCar(it.car) + " a déjà " + g.versions.length + " versions."); return; }
+    vers.forEach((v) => { const w = clone(v); w.id = nouvelId(); g.versions.push(w); });
+    await sauverPolice(p);
+    if (etat.courant === p) { majCellule(it.car); majCouverture(); }
+  }
+  etat.corbeille = etat.corbeille.filter((x) => x.id !== it.id); await sauverCorbeille();
+  annoncer("Élément restauré."); afficherHistorique();
+}
+async function purgerCorbeille() {
+  const limite = maintenant() - JOURS_CORBEILLE * 86400000, avant = etat.corbeille.length;
+  etat.corbeille = etat.corbeille.filter((x) => x.ts > limite);
+  if (etat.corbeille.length !== avant) await sauverCorbeille();
+}
+
+/* ===== SECTION : Export, import, effacement ===== */
+function exporterTout() {
+  const data = { app: APP, schema: SCHEMA, exporteLe: maintenant(), projets: etat.projets };
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = "pimp-my-police-sauvegarde-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  etat.prefs.derniereExport = maintenant(); sauverPrefs(); majDerniereExport();
+  annoncer("Sauvegarde exportée. Garde ce fichier en lieu sûr.");
+}
+function majDerniereExport() {
+  $("#derniere-export").textContent = etat.prefs.derniereExport ? "Dernière sauvegarde exportée : " + dateFr(etat.prefs.derniereExport) : "Aucune sauvegarde exportée pour l’instant.";
+}
+/* Import : le fichier est validé en entier avant d’ajouter quoi que ce soit. */
+async function importerFichier(fichier) {
+  if (!fichier) return;
+  if (fichier.size > MAX_FICHIER) { annoncer("Fichier trop gros (20 Mo maximum)."); return; }
+  let data;
+  try { data = JSON.parse(await fichier.text()); } catch (e) { annoncer("Ce fichier n’est pas une sauvegarde valide."); return; }
+  if (!data || data.app !== APP || typeof data.schema !== "number" || data.schema > SCHEMA || !Array.isArray(data.projets) || data.projets.length > MAX_POLICES) {
+    annoncer("Ce fichier n’est pas une sauvegarde Pimp My Police reconnue."); return;
+  }
+  const propres = [];
+  for (const p of data.projets) { const c = validerPolice(migrer(p)); if (!c) { annoncer("Sauvegarde refusée : données invalides. Rien n’a été modifié."); return; } propres.push(c); }
+  if (etat.projets.length + propres.length > MAX_POLICES) { annoncer("Trop de polices (" + MAX_POLICES + " maximum)."); return; }
+  for (const c of propres) { c.id = nouvelId(); etat.projets.push(c); await sauverPolice(c); }
+  annoncer(propres.length + " police(s) importée(s)."); afficherAccueil();
+}
+async function toutEffacer() {
+  if (!await confirmer("Effacer toutes tes données ?", "Polices, historique et corbeille seront supprimés de cet appareil.", "Continuer")) return;
+  if (!await confirmer("Dernière confirmation", "C’est définitif. As-tu exporté ta sauvegarde ?", "Oui, tout effacer")) return;
+  await Stockage.tout_effacer();
+  etat.projets = []; etat.courant = null; etat.corbeille = []; etat.snaps = [];
+  etat.prefs = { theme: etat.prefs.theme, taille: etat.prefs.taille, derniereExport: 0, courantId: null };
+  await sauverPrefs(); $("#nom-courant").textContent = ""; majDerniereExport(); annoncer("Toutes les données ont été effacées.");
+  aller("accueil");
+}
+
+/* ===== SECTION : Aide, à propos, confidentialité (contenu issu du bloc JSON) ===== */
+function remplirListe(sel, items, tag) { const n = $(sel); vider(n); (items || []).forEach((t) => n.append(el(tag || "li", { texte: t }))); }
+function remplirTextes() {
+  remplirListe("#aide-etapes", peda.etapes);
+  const gl = $("#aide-gloss"); vider(gl);
+  (peda.glossaire || []).forEach((g) => { gl.append(el("dt", { texte: g.mot, style: "font-weight:700" })); gl.append(el("dd", { texte: g.def })); });
+  remplirListe("#aide-install", peda.installation);
+  remplirListe("#apropos-liste", peda.apropos);
+  remplirListe("#confid-liste", peda.confidentialite);
+  document.querySelectorAll("[data-info]").forEach((b) => { const t = peda.infobulles && peda.infobulles[b.dataset.info]; if (t) b.title = t; });
+  const modes = { indexeddb: "Stockage : base du navigateur (IndexedDB).", localstorage: "Stockage : mémoire locale du navigateur (localStorage).", memoire: "Stockage : mémoire temporaire seulement. Tout sera perdu à la fermeture." };
+  $("#apropos-stock").textContent = modes[Stockage.mode] + (etat.persistant ? " Protégé contre le nettoyage automatique." : "");
+}
+
+/* ===== SECTION : Navigation, thème, taille du texte ===== */
+function aller(nom) {
+  if (nom === "atelier" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
+  if (nom === "apercu" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
+  if (ed.car && nom !== "atelier") { document.body.classList.remove("en-edition"); sortirEditeur(true); }
+  document.querySelectorAll("[data-ecran]").forEach((s) => { s.hidden = s.dataset.ecran !== nom; });
+  document.querySelectorAll(".nav [data-aller]").forEach((b) => { if (b.dataset.aller === nom) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  if (nom === "accueil") afficherAccueil();
+  if (nom === "atelier") { if (!ed.car) { $("#vue-grille").hidden = false; $("#vue-editeur").hidden = true; construireGrille(); } }
+  if (nom === "apercu") dessinerApercu();
+  if (nom === "histo") afficherHistorique();
+  if (nom === "export") majDerniereExport();
+  const h = document.querySelector('[data-ecran="' + nom + '"] h2'); if (h) h.focus();
+  window.scrollTo(0, 0);
+}
+function appliquerPrefs() {
+  document.documentElement.dataset.theme = etat.prefs.theme === "sombre" ? "sombre" : "clair";
+  document.documentElement.style.fontSize = etat.prefs.taille + "%";
+}
+function brancherGeneral() {
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-aller]"); if (b) aller(b.dataset.aller); });
+  $("#btn-theme").addEventListener("click", () => {
+    etat.prefs.theme = etat.prefs.theme === "sombre" ? "clair" : "sombre"; appliquerPrefs(); sauverPrefs();
+    if (etat.courant && !$("#ecran-atelier").hidden) { ed.car ? redessiner() : CHARS.forEach(majCellule); }
+  });
+  $("#btn-texte-plus").addEventListener("click", () => { etat.prefs.taille = Math.min(130, etat.prefs.taille + 10); appliquerPrefs(); sauverPrefs(); });
+  $("#btn-texte-moins").addEventListener("click", () => { etat.prefs.taille = Math.max(90, etat.prefs.taille - 10); appliquerPrefs(); sauverPrefs(); });
+  $("#btn-nouvelle").addEventListener("click", async () => {
+    if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
+    const nom = await saisir("Nom de ta nouvelle police", "Pimp My Police " + (etat.projets.length + 1));
+    if (!nom) return;
+    const p = await creerPolice(nom.slice(0, 60)); await ouvrirPolice(p); aller("atelier");
+  });
+  ["#ap-texte", "#ap-taille", "#ap-inter", "#ap-appr", "#ap-melange", "#ap-graine"].forEach((s) => $(s).addEventListener("input", dessinerApercu));
+  $("#ap-remelanger").addEventListener("click", () => { $("#ap-graine").value = String(1 + Math.floor(Math.random() * 99999)); dessinerApercu(); });
+  $("#btn-exporter").addEventListener("click", exporterTout);
+  $("#btn-importer").addEventListener("click", () => $("#fic-import").click());
+  $("#fic-import").addEventListener("change", async (e) => { await importerFichier(e.target.files[0]); e.target.value = ""; });
+  $("#btn-effacer").addEventListener("click", toutEffacer);
+  $("#btn-snap").addEventListener("click", async () => {
+    if (!etat.courant) return;
+    const nom = await saisir("Nom de l’instantané (facultatif)", ""); if (nom === null) return;
+    if (await creerInstantane(etat.courant, "manuel", nom)) { annoncer("Instantané enregistré."); afficherHistorique(); }
+  });
+  $("#btn-vider-corbeille").addEventListener("click", async () => {
+    if (!await confirmer("Vider la corbeille ?", "Les éléments seront supprimés pour de bon.", "Vider")) return;
+    etat.corbeille = []; await sauverCorbeille(); afficherHistorique();
+  });
+  /* sauvegarde immédiate quand la page se cache ou se ferme */
+  document.addEventListener("visibilitychange", () => { if (document.hidden && etat.courant) { clearTimeout(minuteurSauve); sauverPolice(etat.courant); } });
+  window.addEventListener("pagehide", () => { if (etat.courant) sauverPolice(etat.courant); });
+  /* erreur imprévue : message clair, jamais d’écran figé */
+  window.addEventListener("error", () => annoncer("Un problème est survenu. Recommence."));
+  window.addEventListener("unhandledrejection", () => annoncer("Un problème est survenu. Recommence."));
+  /* instantané automatique toutes les 2 minutes si modifié */
+  setInterval(() => { if (etat.sale && etat.courant) creerInstantane(etat.courant, "auto", ""); }, 120000);
+}
+
+/* ===== SECTION : Démarrage ===== */
+async function demarrer() {
+  try { peda = JSON.parse($("#contenu-peda").textContent); } catch (e) { peda = {}; }
+  await Stockage.init();
+  $("#avert-stockage").hidden = Stockage.mode !== "memoire";
+  try { if (navigator.storage && navigator.storage.persist) etat.persistant = await navigator.storage.persist(); } catch (e) { etat.persistant = false; }
+  const prefs = await Stockage.get("prefs"); if (prefs && typeof prefs === "object") Object.assign(etat.prefs, prefs);
+  if (!(etat.prefs.taille >= 90 && etat.prefs.taille <= 130)) etat.prefs.taille = 100;
+  appliquerPrefs();
+  for (const k of (await Stockage.keys()).filter((k) => k.indexOf("proj_") === 0)) {
+    const p = validerPolice(migrer(await Stockage.get(k))); if (p) etat.projets.push(p);
+  }
+  etat.projets.sort((a, b) => a.cree - b.cree);
+  etat.corbeille = (await Stockage.get("corbeille")) || []; if (!Array.isArray(etat.corbeille)) etat.corbeille = [];
+  etat.snaps = (await Stockage.get("snapidx")) || []; if (!Array.isArray(etat.snaps)) etat.snaps = [];
+  await purgerCorbeille();
+  const dernier = etat.projets.find((p) => p.id === etat.prefs.courantId);
+  if (dernier) await ouvrirPolice(dernier);
+  /* aucune autocomplétion sur aucun champ */
+  document.querySelectorAll("input,textarea").forEach((i) => i.setAttribute("autocomplete", "off"));
+  remplirTextes(); brancherGeneral(); brancherEditeur();
+  aller("accueil");
+}
+demarrer();
+})();
+</script>
+</body>
+</html>
