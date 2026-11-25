@@ -2,6 +2,7 @@
 
 Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées à la main.
 
+- Version 0.5.1 : fiche A4 refaite (repères bleus bien visibles, grands caractères à copier, 4 points début/fin pour l’écriture attachée, vrai logo et lien en pied de page, fiche noir et blanc en secours) ; lecture « noir seulement » (bleu, rouge et gris clair ignorés, lumière chaude ou sombre corrigée) ; lettres qui dépassent signalées ⚠ ; approche négative pour l’écriture attachée.
 - Version 0.5.0 : **version papier** (fiche A4 en PDF, import d’une photo ou d’un scan avec redressement automatique, découpage des cases, repassage précis), 129 caractères dont les accents, choix « numérique / papier » à l’accueil.
 - Version 0.4.1 : l’appli s’appelle désormais Pimp My Font (tes polices déjà enregistrées sont conservées).
 - Version 0.4.0 : habillage rétro 70’s (jaune, orange), logo original, trois modes de tracé (appuyer et glisser, **maintenir Entrée**, sans clic), indicateur « stylo levé / tu traces », correctif du tracé au stylet.
