@@ -1,6 +1,6 @@
 {
-  "name": "Pimp My Police",
-  "short_name": "Pimp Police",
+  "name": "Pimp My Font",
+  "short_name": "Pimp Font",
   "description": "Fabrique ta propre police à partir de lettres dessinées à la main.",
   "lang": "fr",
   "start_url": "./index.html",
