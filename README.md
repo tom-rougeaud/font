@@ -2,6 +2,7 @@
 
 Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées à la main.
 
+- Version 0.5.6 : parcours en 4 étapes numérotées (barre de navigation + message d’étape + bouton « étape suivante »), chaque choix d’accueil crée une NOUVELLE police (papier ou numérique), lettres étroites aérées (I, i, l, 1), épaisseur du feutre estimée à l’import papier et reprise par le stylo, écriture attachée détectée.
 - Version 0.5.5 : la lettre fantôme est réduite pour les capitales accentuées et les cédilles, afin de rester dans le carré.
 - Version 0.5.4 : lettre fantôme (Helvetica du PDF, orange très clair, option) dans chaque carré, quadrillage plus dense, points début/fin placés à côté de la lettre fantôme (largeur propre à chaque lettre) ; une fiche vierge ne produit aucune lettre à l’import (testé).
 - Version 0.5.3 : repères de la fiche en orange vif (comme le logo ; seul le noir est lu), petite flèche sous le caractère modèle (la case à remplir est à sa droite), option « Écriture attachée : largeur propre à chaque lettre » (traits d’attache coupés à la même longueur).

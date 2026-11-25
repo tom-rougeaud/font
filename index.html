@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Projet : Pimp My Font  ·  Version : 0.5.5 (version papier)  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.5.6 (version papier)  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Paliers 1 à 3 : atelier, versions, historique, corbeille, aperçu, lissage, recadrage auto, export TTF.
@@ -122,6 +122,7 @@ dialog::backdrop{background:rgba(10,18,28,.6)}
 .pap-case small{font-weight:700;color:var(--brule)}
 .pap-case canvas{width:72px;height:72px;border-radius:8px}
 .pap-case input{width:22px;height:22px;vertical-align:middle}
+.etape{margin:.2rem 0 .8rem;font-weight:700;color:var(--brule)}
 .etat-trace{display:inline-block;margin:.2rem 0;padding:.35rem .9rem;border-radius:999px;font-weight:700;border:2px solid var(--orange);background:var(--carte)}
 .etat-trace.trace{background:var(--brule);border-color:var(--brun);color:#fff}
 body.en-edition .nav,body.en-edition .pied{display:none}
@@ -237,14 +238,15 @@ body.en-edition .nav,body.en-edition .pied{display:none}
 </header>
 
 <nav class="nav" aria-label="Navigation principale">
-  <button class="btn sec" data-aller="accueil">Mes polices</button>
-  <button class="btn sec" data-aller="atelier">Atelier</button>
-  <button class="btn sec" data-aller="papier">Papier</button>
-  <button class="btn sec" data-aller="apercu">Aperçu</button>
-  <button class="btn sec" data-aller="export">Sauvegarde</button>
+  <button class="btn sec" data-aller="accueil">1 · Mes polices</button>
+  <button class="btn sec" data-aller="atelier">2 · Atelier ✏</button>
+  <button class="btn sec" data-aller="papier">2 · Papier 🖨</button>
+  <button class="btn sec" data-aller="apercu">3 · Aperçu</button>
+  <button class="btn sec" data-aller="export">4 · Sauvegarde</button>
   <button class="btn sec" data-aller="histo">Historique</button>
   <button class="btn sec" data-aller="aide">Aide</button>
 </nav>
+<p id="etape-txt" class="etape" aria-live="polite"></p>
 
 <main id="contenu">
   <div id="maj-dispo" class="alerte" hidden>Une nouvelle version est disponible. <button class="btn" id="btn-maj">Mettre à jour</button></div>
@@ -259,12 +261,11 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       Pense à exporter ta sauvegarde : le navigateur peut vider sa mémoire.
       <button class="btn sec" data-aller="export">Aller à la sauvegarde</button>
     </div>
-    <h3 class="titre" style="margin-top:0">Comment veux-tu créer ta police ?</h3>
+    <h3 class="titre" style="margin-top:0">Nouvelle police : comment veux-tu écrire tes lettres ?</h3>
     <div class="choix-mode">
       <button class="choix" id="choix-num" type="button"><strong>✏ Version numérique</strong><span>Tu traces tes lettres à la main, au stylet ou à la souris, sur ton téléphone ou ton ordinateur.</span></button>
       <button class="choix" id="choix-pap" type="button"><strong>🖨 Version papier</strong><span>Tu imprimes une fiche, tu écris au feutre noir, puis tu photographies ou scannes : l’appli découpe et repasse tes lettres.</span></button>
     </div>
-    <div class="rang"><button class="btn sec" id="btn-nouvelle">+ Nouvelle police</button></div>
     <div id="liste-polices" class="liste-polices"></div>
   </section>
 
@@ -323,6 +324,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <div id="pap-fin" class="alerte" hidden><span id="pap-fin-txt"></span>
         <div class="rang"><button class="btn" data-aller="atelier" type="button">Ouvrir l’atelier</button></div></div>
     </div>
+  <div class="rang"><button class="btn" data-aller="apercu" type="button">Étape suivante : régler l’aperçu →</button> <button class="btn sec" data-aller="atelier" type="button">✏ Retoucher à la main</button></div>
   </section>
 
   <!-- Écran : Atelier (grille + éditeur) -->
@@ -391,6 +393,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       </div>
       <p class="discret">Les versions supprimées vont dans la corbeille (30 jours).</p>
     </div>
+  <div class="rang"><button class="btn" data-aller="apercu" type="button">Étape suivante : régler l’aperçu →</button> <button class="btn sec" data-aller="papier" type="button">🖨 Importer une fiche papier</button></div>
   </section>
 
   <!-- Écran : Aperçu -->
@@ -411,6 +414,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <div class="rang">
         <label><input type="checkbox" id="rg-recadrage" checked> Recadrage et mise à l’échelle automatiques</label>
         <label><input type="checkbox" id="rg-angles" checked> Garder les angles vifs</label>
+        <label title="Ajoute de l’espace autour des lettres faites d’un seul trait droit (I, i, l, 1) pour qu’elles ne paraissent pas collées."><input type="checkbox" id="rg-etroites" checked> Aérer les lettres étroites (I, i, l, 1…)</label>
         <label title="Coupe les traits d’attache à la même longueur pour toutes les lettres : une lettre étroite (i, l, t) n’a plus de longues queues. Utile si tu as écrit avec les points de la fiche."><input type="checkbox" id="rg-attache"> Écriture attachée : largeur propre à chaque lettre</label>
         <label><input type="checkbox" id="ap-fidele" checked> Aperçu fidèle à la police exportée</label>
       </div>
@@ -423,6 +427,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
     </div>
     <canvas id="cv-apercu" aria-label="Aperçu du texte avec ta police"></canvas>
     <p id="ap-manque" class="discret"></p>
+  <div class="rang"><button class="btn" data-aller="export" type="button">Étape suivante : exporter ma police →</button></div>
   </section>
 
   <!-- Écran : Sauvegarde (export / import / effacer) -->
@@ -483,7 +488,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <section id="ecran-apropos" data-ecran="apropos" hidden>
     <h2 tabindex="-1">À propos</h2>
     <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
-      <p class="discret">Version 0.5.5</p>
+      <p class="discret">Version 0.5.6</p>
       <button class="btn" id="btn-installer">Installer l’appli</button></div>
   </section>
 
@@ -714,7 +719,7 @@ const nombre = (v, a, b) => typeof v === "number" && isFinite(v) && v >= a && v 
 /* Réglages de la police : valeurs bornées, valeurs par défaut si absentes (anciennes sauvegardes). */
 function nettoyerReglages(r) {
   r = r || {}; const d = REGLAGES_DEFAUT;
-  return { lissage: nombre(r.lissage, 0, 100) ? Math.round(r.lissage) : d.lissage, approche: nombre(r.approche, -100, 150) ? Math.round(r.approche) : d.approche, recadrage: r.recadrage !== false, angles: r.angles !== false, attache: r.attache === true };
+  return { lissage: nombre(r.lissage, 0, 100) ? Math.round(r.lissage) : d.lissage, approche: nombre(r.approche, -100, 150) ? Math.round(r.approche) : d.approche, recadrage: r.recadrage !== false, angles: r.angles !== false, attache: r.attache === true, etroites: r.etroites !== false, epais: nombre(r.epais, 6, 90) ? Math.round(r.epais) : null };
 }
 
 /* Nettoie et contrôle une police ; retourne une copie sûre ou null si invalide. */
@@ -868,7 +873,7 @@ function majCouverture() {
 }
 
 /* ===== SECTION : Moteur de police (recadrage, lissage, contours, fichier TTF) ===== */
-const REGLAGES_DEFAUT = { lissage: 25, approche: 50, recadrage: true, angles: true, attache: false };
+const REGLAGES_DEFAUT = { lissage: 25, approche: 50, recadrage: true, angles: true, attache: false, etroites: true, epais: null };
 const RESOLUTION = 0.8;   /* pixels par unité : finesse du tracé des contours */
 const SEUIL = 128;        /* seuil d’opacité (0–255) qui sépare l’encre du papier */
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -1036,6 +1041,15 @@ function couperAttaches(traits) {
   });
   return sortie.length ? sortie : traits;
 }
+
+/* ===== SECTION : Lettres étroites — plus d’espace autour de I, i, l, 1… ===== */
+/* Une lettre faite d’un seul trait droit n’a presque pas de largeur : avec l’approche normale, elle paraît collée à ses voisines.
+   On lui ajoute de chaque côté assez d’espace pour que son ensemble « lettre + marges » ne soit jamais plus étroit que ETROIT_MIN. */
+const ETROIT_MIN = 240;                    /* unités (1000 = hauteur du carré) : largeur minimale « encre » prise en compte pour une lettre ou un chiffre */
+function extraEtroite(c, m) {
+  if (!/[0-9A-Za-zÀ-ÿŒœ]/.test(c)) return 0;                                    /* ponctuation : on ne touche pas */
+  return Math.max(0, Math.round((ETROIT_MIN - (m.x1 - m.x0)) / 2));
+}
 /* Construit le glyphe d’un caractère : recadrage → image → contours → lissage → points TrueType. */
 function construireContours(c, traits0, rg) {
   const traits = rg.attache ? couperAttaches(traits0) : traits0;
@@ -1051,10 +1065,10 @@ function construireContours(c, traits0, rg) {
   boucles = boucles.map((b) => simplifierBoucle(lisserBoucle(b, passes), eps)).filter((b) => b.length >= 3);
   if (!boucles.length) return null;
   const prof = boucles.map((b, i) => { let d = 0; boucles.forEach((o, j) => { if (i !== j && dansPoly(b[0], o)) d++; }); return d; });
-  const appr = rg.approche, contours = [];
+  const appr = rg.approche, extra = rg.etroites === false ? 0 : extraEtroite(c, m), contours = [];
   boucles.forEach((b, i) => {
     let coins = rg.angles ? reperer_coins(b) : b.map(() => 0);
-    let f = b.map((q) => [X0 + q[0] / RESOLUTION - m.x0 + appr, G.base - (Y0 + q[1] / RESOLUTION)]);  /* repère police : y vers le haut */
+    let f = b.map((q) => [X0 + q[0] / RESOLUTION - m.x0 + appr + extra, G.base - (Y0 + q[1] / RESOLUTION)]);  /* repère police : y vers le haut */
     const air = aireBoucle(f);
     /* TrueType : contours extérieurs dans le sens horaire, trous dans le sens inverse */
     if ((prof[i] % 2 === 0 && air > 0) || (prof[i] % 2 === 1 && air < 0)) { f = f.reverse(); coins = coins.slice().reverse(); }
@@ -1064,13 +1078,13 @@ function construireContours(c, traits0, rg) {
   if (!contours.length) return null;
   let xMin = 1e9, yMin = 1e9, xMax = -1e9, yMax = -1e9;
   contours.forEach((ct) => ct.forEach((q) => { xMin = Math.min(xMin, q[0]); xMax = Math.max(xMax, q[0]); yMin = Math.min(yMin, q[1]); yMax = Math.max(yMax, q[1]); }));
-  return { contours: contours, adv: Math.max(0, Math.round(m.x1 - m.x0 + 2 * appr)), xMin: xMin, yMin: yMin, xMax: xMax, yMax: yMax };
+  return { contours: contours, adv: Math.max(0, Math.round(m.x1 - m.x0 + 2 * appr + 2 * extra)), xMin: xMin, yMin: yMin, xMax: xMax, yMax: yMax };
 }
 /* Mémoire des glyphes déjà calculés (clé = dessin + réglages), pour que l’aperçu reste rapide. */
 const cacheGlyphes = new Map();
 function signature(traits) { let n = 0, s = 0; traits.forEach((t) => { n += t.length; t.forEach((p) => { s += p[0] * 1.3 + p[1] * 0.7 + p[2]; }); }); return traits.length + ":" + n + ":" + Math.round(s * 10); }
 function glypheDe(c, v, rg) {
-  const cle = c + "|" + signature(v.traits) + "|" + rg.lissage + "|" + rg.approche + "|" + (rg.recadrage ? 1 : 0) + "|" + (rg.angles ? 1 : 0) + "|" + (rg.attache ? 1 : 0);
+  const cle = c + "|" + signature(v.traits) + "|" + rg.lissage + "|" + rg.approche + "|" + (rg.recadrage ? 1 : 0) + "|" + (rg.angles ? 1 : 0) + "|" + (rg.attache ? 1 : 0) + "|" + (rg.etroites === false ? 0 : 1);
   if (!cacheGlyphes.has(cle)) {
     if (cacheGlyphes.size > 500) cacheGlyphes.delete(cacheGlyphes.keys().next().value);
     cacheGlyphes.set(cle, construireContours(c, v.traits, rg));
@@ -1554,7 +1568,7 @@ function ajouterVersion() {
 function brancherEditeur() {
   brancherDessin();
   document.querySelectorAll("[data-outil]").forEach((b) => b.addEventListener("click", () => choisirOutil(b.dataset.outil)));
-  $("#ed-epais").addEventListener("input", (e) => { ed.epais = Number(e.target.value); });
+  $("#ed-epais").addEventListener("input", (e) => { ed.epais = Number(e.target.value); if (etat.courant) { etat.courant.reglages.epais = ed.epais; planifierSauvegarde(); } });
   $("#ed-pression").addEventListener("change", (e) => { ed.pression = e.target.checked; });
   $("#ed-annuler").addEventListener("click", annulerEd);
   $("#ed-retablir").addEventListener("click", retablirEd);
@@ -1605,7 +1619,7 @@ function alea(graine) {
 }
 function chargerReglagesUI() {
   const rg = etat.courant.reglages;
-  $("#rg-lissage").value = rg.lissage; $("#rg-approche").value = rg.approche; $("#rg-recadrage").checked = rg.recadrage; $("#rg-angles").checked = rg.angles; $("#rg-attache").checked = rg.attache;
+  $("#rg-lissage").value = rg.lissage; $("#rg-approche").value = rg.approche; $("#rg-recadrage").checked = rg.recadrage; $("#rg-angles").checked = rg.angles; $("#rg-attache").checked = rg.attache; $("#rg-etroites").checked = rg.etroites !== false;
 }
 function dessinerApercu() {
   if (!etat.courant) return;
@@ -1626,7 +1640,8 @@ function dessinerApercu() {
     const v = vs[i];
     if (fidele) { const g = glypheDe(c, v, rg); return g ? { g: g, adv: g.adv * ech } : { vide: true, adv: 400 * ech }; }
     const tr = rg.attache ? couperAttaches(v.traits) : v.traits, m = mesureEncre(tr);
-    return { traits: tr, adv: Math.max(0, m.x1 - m.x0 + 2 * rg.approche) * ech, dx: (rg.approche - m.x0) * ech };
+    const ex = rg.etroites === false ? 0 : extraEtroite(c, m);
+    return { traits: tr, adv: Math.max(0, m.x1 - m.x0 + 2 * rg.approche + 2 * ex) * ech, dx: (rg.approche + ex - m.x0) * ech };
   });
   /* 2) mise en lignes (retour à la ligne entre les mots) */
   const lignes = [[]]; let x = 0, mot = [], motL = 0;
@@ -1819,6 +1834,9 @@ function remplirTextes() {
 }
 
 /* ===== SECTION : Navigation, thème, taille du texte ===== */
+/* Fil de progression : 1 Mes polices → 2 Écrire (atelier ou papier) → 3 Aperçu → 4 Sauvegarde. */
+const ETAPES = { accueil: [1, "crée une nouvelle police, ou ouvre une police existante."], papier: [2, "écris tes lettres sur la fiche, puis importe la photo."], atelier: [2, "trace ou retouche tes lettres à la main."], apercu: [3, "vérifie ton texte et règle l’espacement."], export: [4, "exporte ta police (.ttf) et garde une sauvegarde."] };
+function majEtape(nom) { const e = ETAPES[nom], t = $("#etape-txt"); t.hidden = !e; if (e) t.textContent = "Étape " + e[0] + " sur 4 : " + e[1]; }
 function aller(nom) {
   if (nom === "atelier" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
   if (nom === "papier" && !etat.courant) { annoncer("Ouvre d’abord une police dans « Mes polices »."); nom = "accueil"; }
@@ -1827,9 +1845,11 @@ function aller(nom) {
   document.querySelectorAll("[data-ecran]").forEach((s) => { s.hidden = s.dataset.ecran !== nom; });
   document.querySelectorAll(".nav [data-aller]").forEach((b) => { if (b.dataset.aller === nom) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   if (nom === "accueil") afficherAccueil();
+  if (nom === "atelier" && etat.courant.reglages.epais) { ed.epais = etat.courant.reglages.epais; $("#ed-epais").value = String(ed.epais); }   /* le stylo reprend l’épaisseur de la police (mesurée sur le papier) */
   if (nom === "atelier") { if (!ed.car) { $("#vue-grille").hidden = false; $("#vue-editeur").hidden = true; construireGrille(); } }
   if (nom === "apercu") { chargerReglagesUI(); dessinerApercu(); }
   if (nom === "papier") { $("#pap-police").textContent = "Police ouverte : « " + etat.courant.nom + " ». Les lettres importées s’ajoutent à cette police."; $("#pap-nbpages").textContent = String(nbPagesFiche()); }
+  majEtape(nom);
   if (nom === "histo") afficherHistorique();
   if (nom === "export") { majDerniereExport(); majExport(); }
   const h = document.querySelector('[data-ecran="' + nom + '"] h2'); if (h) h.focus();
@@ -1847,28 +1867,20 @@ function brancherGeneral() {
   });
   $("#btn-texte-plus").addEventListener("click", () => { etat.prefs.taille = Math.min(130, etat.prefs.taille + 10); appliquerPrefs(); sauverPrefs(); });
   $("#btn-texte-moins").addEventListener("click", () => { etat.prefs.taille = Math.max(90, etat.prefs.taille - 10); appliquerPrefs(); sauverPrefs(); });
-  /* Deux chemins : tracé numérique ou version papier. Sans police ouverte, on en crée une. */
+  /* Deux chemins : tracé numérique ou version papier. Chaque choix crée une NOUVELLE police. */
   const choisirChemin = async (ecran) => {
-    if (!etat.courant) {
-      if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
-      const nom = await saisir("Nom de ta nouvelle police", "Pimp My Font " + (etat.projets.length + 1));
-      if (!nom) return;
-      await ouvrirPolice(await creerPolice(nom.slice(0, 60)));
-    }
+    if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
+    const nom = await saisir("Nom de ta nouvelle police", "Pimp My Font " + (etat.projets.length + 1));
+    if (!nom) return;
+    await ouvrirPolice(await creerPolice(nom.slice(0, 60)));
     aller(ecran);
   };
   $("#choix-num").addEventListener("click", () => choisirChemin("atelier"));
   $("#choix-pap").addEventListener("click", () => choisirChemin("papier"));
   brancherPapier();
-  $("#btn-nouvelle").addEventListener("click", async () => {
-    if (etat.projets.length >= MAX_POLICES) { annoncer("Limite de " + MAX_POLICES + " polices atteinte."); return; }
-    const nom = await saisir("Nom de ta nouvelle police", "Pimp My Font " + (etat.projets.length + 1));
-    if (!nom) return;
-    const p = await creerPolice(nom.slice(0, 60)); await ouvrirPolice(p); aller("atelier");
-  });
   ["#ap-texte", "#ap-taille", "#ap-inter", "#ap-melange", "#ap-graine", "#ap-fidele"].forEach((s) => $(s).addEventListener("input", dessinerApercu));
   /* réglages de la police : enregistrés dans la police ouverte */
-  [["#rg-lissage", "lissage", true], ["#rg-approche", "approche", true], ["#rg-recadrage", "recadrage", false], ["#rg-angles", "angles", false], ["#rg-attache", "attache", false]].forEach((r) => {
+  [["#rg-lissage", "lissage", true], ["#rg-approche", "approche", true], ["#rg-recadrage", "recadrage", false], ["#rg-angles", "angles", false], ["#rg-attache", "attache", false], ["#rg-etroites", "etroites", false]].forEach((r) => {
     $(r[0]).addEventListener("input", (e) => { if (!etat.courant) return; etat.courant.reglages[r[1]] = r[2] ? Number(e.target.value) : e.target.checked; planifierSauvegarde(); dessinerApercu(); });
   });
   $("#rg-attache").addEventListener("change", (e) => {                    /* en cochant, l’approche se règle pour que les lettres se touchent */
@@ -2429,6 +2441,7 @@ async function papierImporter() {
   if (!choisies.length) { annoncer("Aucune lettre à importer sur cette page."); return; }
   $("#pap-importer").disabled = true;
   await creerInstantane(p, "auto", "Avant import papier (page " + pap.num + ")");          /* on garde un point de retour */
+  const premiere = nbFaits(p) === 0;                                                       /* première page importée dans cette police ? */
   let ajoutees = 0, pleines = 0;
   choisies.forEach((x) => {
     const g = glyphe(p, x.car, true), traits = clone(x.traits);
@@ -2437,11 +2450,23 @@ async function papierImporter() {
     else if (g.versions.length < MAX_VERSIONS) { const v = versionVide(); v.traits = traits; g.versions.push(v); ajoutees++; }
     else pleines++;
   });
+  const estim = premiere && ajoutees ? estimerEcriture(p, choisies) : "";                /* épaisseur du feutre, écriture attachée */
   await sauverPolice(p); etat.sale = false;
   $("#pap-importer").disabled = false;
   $("#pap-fin").hidden = false;
-  $("#pap-fin-txt").textContent = ajoutees + " lettre(s) ajoutée(s) à « " + p.nom + " »" + (pleines ? " (" + pleines + " ignorée(s) : déjà 5 versions)." : ".") + " Importe une autre page, ou ouvre l’atelier pour retoucher.";
+  $("#pap-fin-txt").textContent = ajoutees + " lettre(s) ajoutée(s) à « " + p.nom + " »" + (pleines ? " (" + pleines + " ignorée(s) : déjà 5 versions)." : ".") + estim + " Importe une autre page, ou passe à l’étape suivante.";
   annoncer(ajoutees + " lettre(s) importée(s).");
+}
+/* Estime l’écriture à partir des lettres importées : épaisseur du feutre (reprise par le stylo de l’atelier) et écriture attachée ou non.
+   Ces réglages sont enregistrés dans la police : on retrouve la même largeur de trait sur ordinateur et sur téléphone, sans tâtonner. */
+function estimerEcriture(p, choisies) {
+  const ep = []; choisies.forEach((x) => x.traits.forEach((t) => t.forEach((q) => ep.push(q[2])))); ep.sort((a, b) => a - b);
+  let txt = "";
+  if (ep.length) { const med = Math.max(6, Math.min(90, Math.round(ep[ep.length >> 1]))); p.reglages.epais = med; txt += " Épaisseur de ton feutre estimée : " + med + " (le stylo de l’atelier la reprend)."; }
+  const lettres = choisies.filter((x) => /[A-Za-zÀ-ÿŒœ]/.test(x.car));
+  const coupees = lettres.filter((x) => { const a = mesureEncre(x.traits), b = mesureEncre(couperAttaches(x.traits)); return a && b && (a.x1 - a.x0) - (b.x1 - b.x0) > 20; }).length;
+  if (lettres.length && coupees / lettres.length >= 0.3) { p.reglages.attache = true; p.reglages.approche = -4; txt += " Écriture attachée détectée : réglage « largeur propre à chaque lettre » activé."; }
+  return txt;
 }
 function brancherPapier() {
   $("#pap-pdf").addEventListener("click", () => { telecharger(fabriquerPDF("couleur", $("#pap-fant").checked), "pimp-my-font-fiche-couleur.pdf"); annoncer("Fiche en couleur téléchargée."); });
