@@ -2,6 +2,7 @@
 
 Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées à la main.
 
+- Version 0.5.3 : repères de la fiche en orange vif (comme le logo ; seul le noir est lu), petite flèche sous le caractère modèle (la case à remplir est à sa droite), option « Écriture attachée : largeur propre à chaque lettre » (traits d’attache coupés à la même longueur).
 - Version 0.5.2 : les 4 points début/fin de la fiche sont reculés de 7 mm par rapport aux bords du carré (test sur 4 pages écrites en attaché : liaisons plus courtes et plus naturelles).
 - Version 0.5.1 : fiche A4 refaite (repères bleus bien visibles, grands caractères à copier, 4 points début/fin pour l’écriture attachée, vrai logo et lien en pied de page, fiche noir et blanc en secours) ; lecture « noir seulement » (bleu, rouge et gris clair ignorés, lumière chaude ou sombre corrigée) ; lettres qui dépassent signalées ⚠ ; approche négative pour l’écriture attachée.
 - Version 0.5.0 : **version papier** (fiche A4 en PDF, import d’une photo ou d’un scan avec redressement automatique, découpage des cases, repassage précis), 129 caractères dont les accents, choix « numérique / papier » à l’accueil.

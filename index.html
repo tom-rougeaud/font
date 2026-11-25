@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Projet : Pimp My Font  ·  Version : 0.5.2 (version papier)  ·  Date : 25/11/2026
+  Projet : Pimp My Font  ·  Version : 0.5.3 (version papier)  ·  Date : 25/11/2026
   Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0
   Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
   Paliers 1 à 3 : atelier, versions, historique, corbeille, aperçu, lissage, recadrage auto, export TTF.
@@ -277,7 +277,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <p>La fiche est un PDF A4 : une page = 35 cases. Il y a <strong id="pap-nbpages"></strong> pages pour tous les caractères (lettres, chiffres, accents, signes).</p>
       <ul>
         <li>Imprime en A4, à 100 % (« taille réelle »), sans « ajuster à la page ».</li>
-        <li><strong>En couleur si possible</strong> : les repères sont bleus, bien visibles, et l’appli les ignore (seul le noir est lu). Sinon, choisis la fiche noir et blanc.</li>
+        <li><strong>En couleur si possible</strong> : les repères sont orange, bien visibles, et l’appli les ignore (seul le noir est lu). Sinon, choisis la fiche noir et blanc.</li>
         <li>Garde bien les 4 carrés noirs des coins : ils servent à redresser la photo. Le logo et le lien en bas de page permettent à quelqu’un qui trouve la feuille de retrouver l’appli.</li>
       </ul>
       <div class="rang"><button class="btn" id="pap-pdf" type="button">Fiche en couleur (conseillée)</button> <button class="btn sec" id="pap-pdf-nb" type="button">Fiche noir et blanc</button></div>
@@ -286,8 +286,8 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <ul>
         <li>Utilise un <strong>feutre noir</strong> à pointe moyenne : pas de crayon à papier, ni de stylo bleu, rouge ou clair (ils ne seront pas lus).</li>
         <li>Écris chaque caractère dans son carré, <strong>posé sur la ligne de base</strong> (le trait plein).</li>
-        <li>Reste dans le carré. Un trait de taille régulière donne une police plus propre. Le grand caractère à gauche du carré est le modèle à copier.</li>
-        <li>Écriture attachée : les <strong>4 points</strong> bleus (un peu en retrait des bords du carré, au niveau de la ligne de base et de la ligne des minuscules) montrent où commence et où finit le trait : pars du point de gauche, finis sur le point de droite. Ensuite, dans l’Aperçu, mets l’approche entre −30 et −60 pour que les lettres se touchent.</li>
+        <li>Reste dans le carré. Un trait de taille régulière donne une police plus propre. Le grand caractère à gauche du carré est le modèle à copier : la flèche sous lui montre la case à remplir, à sa droite.</li>
+        <li>Écriture attachée : les <strong>4 points</strong> orange (un peu en retrait des bords du carré, au niveau de la ligne de base et de la ligne des minuscules) montrent où commence et où finit le trait : pars du point de gauche, finis sur le point de droite. Ensuite, dans l’Aperçu, coche « Écriture attachée : largeur propre à chaque lettre » : l’approche se règle toute seule et les lettres se touchent.</li>
         <li>Tu peux laisser des cases vides : elles seront ignorées.</li>
       </ul>
     </div>
@@ -410,6 +410,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
       <div class="rang">
         <label><input type="checkbox" id="rg-recadrage" checked> Recadrage et mise à l’échelle automatiques</label>
         <label><input type="checkbox" id="rg-angles" checked> Garder les angles vifs</label>
+        <label title="Coupe les traits d’attache à la même longueur pour toutes les lettres : une lettre étroite (i, l, t) n’a plus de longues queues. Utile si tu as écrit avec les points de la fiche."><input type="checkbox" id="rg-attache"> Écriture attachée : largeur propre à chaque lettre</label>
         <label><input type="checkbox" id="ap-fidele" checked> Aperçu fidèle à la police exportée</label>
       </div>
       <div class="rang">
@@ -481,7 +482,7 @@ body.en-edition .nav,body.en-edition .pied{display:none}
   <section id="ecran-apropos" data-ecran="apropos" hidden>
     <h2 tabindex="-1">À propos</h2>
     <div class="carte"><ul id="apropos-liste"></ul><p id="apropos-stock" class="discret"></p>
-      <p class="discret">Version 0.5.2</p>
+      <p class="discret">Version 0.5.3</p>
       <button class="btn" id="btn-installer">Installer l’appli</button></div>
   </section>
 
@@ -712,7 +713,7 @@ const nombre = (v, a, b) => typeof v === "number" && isFinite(v) && v >= a && v 
 /* Réglages de la police : valeurs bornées, valeurs par défaut si absentes (anciennes sauvegardes). */
 function nettoyerReglages(r) {
   r = r || {}; const d = REGLAGES_DEFAUT;
-  return { lissage: nombre(r.lissage, 0, 100) ? Math.round(r.lissage) : d.lissage, approche: nombre(r.approche, -100, 150) ? Math.round(r.approche) : d.approche, recadrage: r.recadrage !== false, angles: r.angles !== false };
+  return { lissage: nombre(r.lissage, 0, 100) ? Math.round(r.lissage) : d.lissage, approche: nombre(r.approche, -100, 150) ? Math.round(r.approche) : d.approche, recadrage: r.recadrage !== false, angles: r.angles !== false, attache: r.attache === true };
 }
 
 /* Nettoie et contrôle une police ; retourne une copie sûre ou null si invalide. */
@@ -866,7 +867,7 @@ function majCouverture() {
 }
 
 /* ===== SECTION : Moteur de police (recadrage, lissage, contours, fichier TTF) ===== */
-const REGLAGES_DEFAUT = { lissage: 25, approche: 50, recadrage: true, angles: true };
+const REGLAGES_DEFAUT = { lissage: 25, approche: 50, recadrage: true, angles: true, attache: false };
 const RESOLUTION = 0.8;   /* pixels par unité : finesse du tracé des contours */
 const SEUIL = 128;        /* seuil d’opacité (0–255) qui sépare l’encre du papier */
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -994,8 +995,49 @@ function boucleVersTT(pts, coins) {
   return rot.filter((q, i) => { const r = rot[(i + 1) % rot.length]; return !(q[0] === r[0] && q[1] === r[1] && q[2] === r[2]); });
 }
 
+/* ===== SECTION : Écriture attachée — largeur propre à chaque lettre ===== */
+/* Les traits d’attache (entrée et sortie, posés sur la ligne de base ou celle des minuscules) vont jusqu’aux points de la fiche : ils ont la même longueur
+   pour toutes les lettres, donc une lettre étroite (i, l, t) a de longues queues et une lettre large (m, o) de courtes. On coupe donc chaque queue
+   à ATTACHE_MAX unités du « corps » de la lettre : la largeur de la lettre suit alors son corps, et les queues de deux lettres voisines se touchent à l’approche 0 (−4 pour un léger recouvrement). */
+const ATTACHE_MAX = 60;                    /* unités (1000 = hauteur du carré) : longueur de queue gardée de chaque côté */
+function couperAttaches(traits) {
+  const m = mesureEncre(traits); if (!m) return traits;
+  const PAS = 8, n = Math.ceil((m.x1 - m.x0) / PAS) + 1, ymin = new Float32Array(n).fill(Infinity), ymax = new Float32Array(n).fill(-Infinity);
+  traits.forEach((t) => t.forEach((p, i) => {                                   /* échantillonne chaque segment, trait épais compris */
+    const q = t[i - 1] || p, k = Math.max(1, Math.ceil(Math.hypot(p[0] - q[0], p[1] - q[1]) / 4));
+    for (let j = 1; j <= k; j++) {
+      const x = q[0] + (p[0] - q[0]) * j / k, y = q[1] + (p[1] - q[1]) * j / k, r = (q[2] + (p[2] - q[2]) * j / k) / 2, b = Math.max(0, Math.min(n - 1, Math.round((x - m.x0) / PAS)));
+      if (y - r < ymin[b]) ymin[b] = y - r; if (y + r > ymax[b]) ymax[b] = y + r;
+    }
+  }));
+  const bas = (b) => ymax[b] <= G.base + 90 && ymin[b] >= G.base - 230, haut = (b) => ymin[b] >= G.xh - 130 && ymax[b] <= G.xh + 130;
+  const queue = (b) => ymin[b] === Infinity || bas(b) || haut(b);                /* colonne vide ou « basse » : fait partie d’un trait d’attache */
+  let a = 0, z = n - 1;
+  if (m.x0 <= 330) while (a < n && queue(a)) a++;
+  if (m.x1 >= 670) while (z >= 0 && queue(z)) z--;
+  if (a >= n || z < 0 || a > z) return traits;                                   /* aucune partie « corps » : on ne touche à rien (point, virgule…) */
+  const gauche = a > 0 ? m.x0 + a * PAS - ATTACHE_MAX : -Infinity, droite = z < n - 1 ? m.x0 + (z + 1) * PAS + ATTACHE_MAX : Infinity;
+  const sortie = [];
+  traits.forEach((t) => {
+    let cur = [];
+    const fin = () => { if (cur.length) sortie.push(cur); cur = []; };
+    t.forEach((p, i) => {
+      const dedans = (q) => q[0] >= gauche && q[0] <= droite, q = t[i - 1];
+      if (q && dedans(q) !== dedans(p)) {                                         /* le segment traverse la coupe : on ajoute le point exact de coupe */
+        const lim = dedans(q) ? (p[0] > droite ? droite : gauche) : (q[0] < gauche ? gauche : droite), f = (lim - q[0]) / (p[0] - q[0]);
+        cur.push([lim, q[1] + (p[1] - q[1]) * f, q[2] + (p[2] - q[2]) * f]);
+        if (!dedans(q)) { /* on entre dans la zone gardée : le point de coupe ouvre le morceau */ }
+        else fin();
+      }
+      if (dedans(p)) cur.push(p);
+    });
+    fin();
+  });
+  return sortie.length ? sortie : traits;
+}
 /* Construit le glyphe d’un caractère : recadrage → image → contours → lissage → points TrueType. */
-function construireContours(c, traits, rg) {
+function construireContours(c, traits0, rg) {
+  const traits = rg.attache ? couperAttaches(traits0) : traits0;
   const t = normaliserTraits(c, traits, rg), m = mesureEncre(t);
   if (!m) return null;
   const marge = 30, X0 = Math.floor(m.x0) - marge, Y0 = Math.floor(m.y0) - marge;
@@ -1027,7 +1069,7 @@ function construireContours(c, traits, rg) {
 const cacheGlyphes = new Map();
 function signature(traits) { let n = 0, s = 0; traits.forEach((t) => { n += t.length; t.forEach((p) => { s += p[0] * 1.3 + p[1] * 0.7 + p[2]; }); }); return traits.length + ":" + n + ":" + Math.round(s * 10); }
 function glypheDe(c, v, rg) {
-  const cle = c + "|" + signature(v.traits) + "|" + rg.lissage + "|" + rg.approche + "|" + (rg.recadrage ? 1 : 0) + "|" + (rg.angles ? 1 : 0);
+  const cle = c + "|" + signature(v.traits) + "|" + rg.lissage + "|" + rg.approche + "|" + (rg.recadrage ? 1 : 0) + "|" + (rg.angles ? 1 : 0) + "|" + (rg.attache ? 1 : 0);
   if (!cacheGlyphes.has(cle)) {
     if (cacheGlyphes.size > 500) cacheGlyphes.delete(cacheGlyphes.keys().next().value);
     cacheGlyphes.set(cle, construireContours(c, v.traits, rg));
@@ -1562,7 +1604,7 @@ function alea(graine) {
 }
 function chargerReglagesUI() {
   const rg = etat.courant.reglages;
-  $("#rg-lissage").value = rg.lissage; $("#rg-approche").value = rg.approche; $("#rg-recadrage").checked = rg.recadrage; $("#rg-angles").checked = rg.angles;
+  $("#rg-lissage").value = rg.lissage; $("#rg-approche").value = rg.approche; $("#rg-recadrage").checked = rg.recadrage; $("#rg-angles").checked = rg.angles; $("#rg-attache").checked = rg.attache;
 }
 function dessinerApercu() {
   if (!etat.courant) return;
@@ -1582,8 +1624,8 @@ function dessinerApercu() {
     dernier[c] = i;
     const v = vs[i];
     if (fidele) { const g = glypheDe(c, v, rg); return g ? { g: g, adv: g.adv * ech } : { vide: true, adv: 400 * ech }; }
-    const m = mesureEncre(v.traits);
-    return { traits: v.traits, adv: Math.max(0, m.x1 - m.x0 + 2 * rg.approche) * ech, dx: (rg.approche - m.x0) * ech };
+    const tr = rg.attache ? couperAttaches(v.traits) : v.traits, m = mesureEncre(tr);
+    return { traits: tr, adv: Math.max(0, m.x1 - m.x0 + 2 * rg.approche) * ech, dx: (rg.approche - m.x0) * ech };
   });
   /* 2) mise en lignes (retour à la ligne entre les mots) */
   const lignes = [[]]; let x = 0, mot = [], motL = 0;
@@ -1825,8 +1867,12 @@ function brancherGeneral() {
   });
   ["#ap-texte", "#ap-taille", "#ap-inter", "#ap-melange", "#ap-graine", "#ap-fidele"].forEach((s) => $(s).addEventListener("input", dessinerApercu));
   /* réglages de la police : enregistrés dans la police ouverte */
-  [["#rg-lissage", "lissage", true], ["#rg-approche", "approche", true], ["#rg-recadrage", "recadrage", false], ["#rg-angles", "angles", false]].forEach((r) => {
+  [["#rg-lissage", "lissage", true], ["#rg-approche", "approche", true], ["#rg-recadrage", "recadrage", false], ["#rg-angles", "angles", false], ["#rg-attache", "attache", false]].forEach((r) => {
     $(r[0]).addEventListener("input", (e) => { if (!etat.courant) return; etat.courant.reglages[r[1]] = r[2] ? Number(e.target.value) : e.target.checked; planifierSauvegarde(); dessinerApercu(); });
+  });
+  $("#rg-attache").addEventListener("change", (e) => {                    /* en cochant, l’approche se règle pour que les lettres se touchent */
+    if (!etat.courant || !e.target.checked) return;
+    etat.courant.reglages.approche = -4; $("#rg-approche").value = "-4"; planifierSauvegarde(); dessinerApercu();
   });
   $("#btn-ttf").addEventListener("click", exporterPolice);
   $("#ap-remelanger").addEventListener("click", () => { $("#ap-graine").value = String(1 + Math.floor(Math.random() * 99999)); dessinerApercu(); });
@@ -1881,10 +1927,10 @@ function versWinAnsi(t) {
 }
 /* Petit rappel sous le grand caractère, pour les signes qui se ressemblent (I / l / 1, O / 0…). */
 const LEGENDE_CAR = { "I": "i maj.", "l": "L min.", "O": "o maj.", "0": "zéro", "1": "un", ".": "point", ",": "virgule", "'": "apos.", "’": "apos. ’", "-": "tiret", "–": "tiret –", "—": "tiret —", "\"": "guillem." };
-/* Couleurs de la fiche. « couleur » : bleu franc, bien visible à l’impression, et que la lecture ignore (seul le noir compte).
+/* Couleurs de la fiche. « couleur » : orange vif (comme le logo), bien visible à l’impression, et que la lecture ignore (seul le noir compte).
    « nb » : gris moyens, pour une imprimante noir et blanc (la lecture ignore aussi les gris clairs). */
 const PALETTE_FICHE = {
-  couleur: { cadre: "0.10 0.30 0.85", guide: "0.25 0.45 0.92", texte: "0.10 0.28 0.75", g: false },
+  couleur: { cadre: "0.93 0.45 0.05", guide: "0.96 0.58 0.16", texte: "0.90 0.40 0.05", g: false },
   nb: { cadre: "0.55", guide: "0.65", texte: "0.50", g: true }
 };
 /* Dessine le contenu d’une page de la fiche (opérateurs PDF). mode : "couleur" ou "nb". */
@@ -1919,7 +1965,7 @@ function contenuFiche(k, mode) {
   o.push("0.10 g"); texte(60, 13, "Fiche " + num + " / " + nbPagesFiche(), 13, true);
   rempl_c(P.texte);
   texte(60, 17.6, "Écris au feutre NOIR, la lettre posée sur la ligne de base.", 6.6, true);
-  texte(60, 20.9, P.g ? "Les repères gris clair ne sont pas lus. Points = début et fin du trait." : "Les repères bleus ne sont pas lus. Points = début et fin du trait.", 6.6);
+  texte(60, 20.9, P.g ? "Les repères gris clair ne sont pas lus. Points = début et fin du trait." : "Les repères orange ne sont pas lus. Points = début et fin du trait.", 6.6);
   texte(60, 24.1, P.g ? "Scanne ou photographie la page entière, avec les 4 carrés noirs." : "Photo ou scan en couleur, page entière, avec les 4 carrés noirs.", 6.6);
   for (let i = 0; i < PAR_PAGE; i++) {
     const c = CHARS[k * PAR_PAGE + i]; if (c === undefined) break;
@@ -1935,6 +1981,9 @@ function contenuFiche(k, mode) {
     [[ix + FICHE.pt, yb], [ix + S - FICHE.pt, yb], [ix + FICHE.pt, yx], [ix + S - FICHE.pt, yx]].forEach((p) => rond(p[0], p[1], 1.1));
     rempl_c(P.texte); texte(cx + 1, cy + 9, c, 18, true);                             /* grand caractère à copier */
     if (LEGENDE_CAR[c]) texte(cx + 1, cy + 13, LEGENDE_CAR[c], 5.5);
+    /* petite flèche sous le caractère : la case à remplir est À DROITE du modèle */
+    trait_c(P.cadre); rempl_c(P.cadre); o.push("[] 0 d 0.9 w"); trait(cx + 1, cy + 17.5, cx + 6.3, cy + 17.5);
+    o.push(X(cx + 7.6) + " " + Y(cy + 17.5) + " m " + X(cx + 5.6) + " " + Y(cy + 16.3) + " l " + X(cx + 5.6) + " " + Y(cy + 18.7) + " l f");
   }
   /* pied de page : logo + adresse de l’appli (cliquable dans le PDF) */
   logo(22, 276, 22);
