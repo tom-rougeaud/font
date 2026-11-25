@@ -1,10 +1,11 @@
-Polices de repère intégrées dans Pimp My Police (lettre fantôme en filigrane)
+Polices intégrées dans Pimp My Police (lettre fantôme en filigrane, titres et logo)
 
 - Patrick Hand : Copyright (c) 2010-2012 Patrick Wagesreiter
 - Nunito : Copyright 2014 The Nunito Project Authors (https://github.com/googlefonts/nunito)
 - Lora : Copyright 2011 The Lora Project Authors (https://github.com/cyrealtype/Lora-Cyrillic), with Reserved Font Name "Lora".
+- Shrikhand : Copyright (c) 2015 Jonny Pinhorn (titres de l’appli ; les lettres du logo en sont dérivées, converties en tracés).
 
-Ces trois polices sont diffusées sous la licence SIL Open Font License, Version 1.1, reproduite ci-dessous.
+Ces quatre polices sont diffusées sous la licence SIL Open Font License, Version 1.1, reproduite ci-dessous.
 Les fichiers de police sont intégrés tels quels (sous-ensemble latin, format WOFF2), sans modification des dessins.
 
 -----------------------------------------------------------
