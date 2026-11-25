@@ -1,4 +1,5 @@
-/* Projet : Pimp My Font — configuration publique du compte (identique à celle des autres applis de Tom Rougeaud).
+/* Auteur : Tom Rougeaud  ·  Licence : CC BY-NC 4.0  ·  Réalisé avec l’aide de l’IA : Claude Sonnet 5.5 (Anthropic)
+   Projet : Pimp My Font — configuration publique du compte (identique à celle des autres applis de Tom Rougeaud).
    Contient l’adresse du projet Supabase et sa clé PUBLIABLE (conçue pour être visible dans une page web :
    la sécurité repose sur les règles d’accès de la base, et les polices sont de toute façon chiffrées). */
 var PMF_CONFIG = {

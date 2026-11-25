@@ -2,6 +2,7 @@
 
 Appli web pour fabriquer sa propre police (.ttf) à partir de lettres dessinées à la main.
 
+- Version 0.6.1 : corrections du contrôle qualité (avertissement clair sur le mot de passe oublié, mot de passe effacé de la mémoire après ouverture de la clé, contraste du badge, crédits de config.js).
 - Version 0.6.0 : **compte facultatif et synchronisation** ordinateur ↔ téléphone (pseudo + mot de passe, polices chiffrées de bout en bout dans le navigateur, code de récupération), bouton « Rechercher les mises à jour » et recherche automatique chaque jour, capitales accentuées (À, É, Ô…) mises à l’échelle pour que l’accent reste dans le cadre.
 - Version 0.5.6 : parcours en 4 étapes numérotées (barre de navigation + message d’étape + bouton « étape suivante »), chaque choix d’accueil crée une NOUVELLE police (papier ou numérique), lettres étroites aérées (I, i, l, 1), épaisseur du feutre estimée à l’import papier et reprise par le stylo, écriture attachée détectée.
 - Version 0.5.5 : la lettre fantôme est réduite pour les capitales accentuées et les cédilles, afin de rester dans le carré.
